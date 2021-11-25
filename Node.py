@@ -1,6 +1,7 @@
 import random
 import uuid
 
+
 class Node:
     # constructor
     def __init__(self, rank: float, positionX: float, positionY: float):
@@ -20,4 +21,3 @@ class Node:
 
     def get_Y(self) -> float:
         return self.positionY
-
