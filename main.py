@@ -12,7 +12,7 @@ xs = []
 ys = []
 for node in network.nodes:
     xs.append(node.get_positionX())
-    ys.append(node.get_positionY())
+    ys.append(node.get_Y())
     print("id: ", node.get_ID())
     print("rank: ", node.get_rank())
     print(f"x position: {node.get_positionX()}    y position: {node.positionY}", )
