@@ -1,34 +1,19 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import math
-from Node import Node
+from Network import Network
 
 no_of_nodes = 110
-neighbour_radius = 1.5
-# GENERATE NODES
-nodes = []
-for i in range(no_of_nodes):
-    x = round(np.random.uniform(0, 10), 1)
-    y = round(i/(no_of_nodes/10))
-    nodes.append(Node(0, x, y))
-
-
-# GENERATE CONNECTIONS BY FINDING NEIGHBOURS
-dictionary = {}
-for i in nodes:
-    connections = []
-    for j in nodes:
-        if i.get_ID() == j.get_ID():
-            continue
-        dist = math.sqrt((i.get_X() - j.get_X())**2 + (i.get_Y() - j.get_Y())**2)
-        if dist <= neighbour_radius:
-            connections.append(j)
-    dictionary[i] = connections
+network = Network(no_of_nodes)
+nodes = network.get_nodes()
+connections = network.find_neighbours()
 
 
 # PLOT NODES AND CONNECTIONS
-for i in dictionary:
+for i in nodes:
     plt.plot(i.get_X(), i.get_Y(), 'ro')
-    for j in dictionary[i]:
-        plt.plot([i.get_X(), j.get_X()], [i.get_Y(), j.get_Y()], 'k')
+for i in connections:
+    from_x = i.get_node_from().get_X()
+    from_y = i.get_node_from().get_Y()
+    to_x = i.get_node_to().get_X()
+    to_y = i.get_node_to().get_Y()
+    plt.plot([from_x, to_x], [from_y, to_y], 'k')
 plt.show()

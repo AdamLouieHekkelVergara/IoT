@@ -1,28 +1,47 @@
-import numpy as ns
+import math
+
 from Node import Node
 import random
+import numpy as np
 
 
 class Network:
     # constructor
-    def __init__(self, nr_of_nodes: int):
-        self.nrOfNodes = nr_of_nodes
-        self.nodes: [] = self.__define_nodes_in_network(nr_of_nodes)
+    def __init__(self, no_of_nodes: int):
+        self.noOfNodes: int = no_of_nodes
+        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
+        self.neighbourRadius: float = 1.5
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
-    def __define_nodes_in_network(self, nr_of_nodes):
+    def __define_nodes_in_network(self, no_of_nodes):
         nodelist = []
-        for i in range(nr_of_nodes):
-            position_x: int = random.randint(0, 100)
-            position_y: int = random.randint(0, 100)
-            rank: float = round(random.uniform(1, 4), 2)
-            node = Node(rank, position_x, position_y)
+        for i in range(no_of_nodes):
+            x = round(np.random.uniform(0, 10), 1)
+            y = round(i / (no_of_nodes/10))
+            rank = round(random.uniform(1, 4), 2)
+            node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
 
     def get_nr_of_nodes(self) -> int:
-        return self.nrOfNodes
+        return self.noOfNodes
+
+    def find_neighbours(self):
+        connections = []
+        nodes = self.get_nodes()
+        for i in nodes:
+            for j in nodes:
+                if i.get_ID() == j.get_ID():
+                    continue
+                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)
+                if dist <= self.neighbourRadius:
+                    connection = Connection(ETX=1, node_from=i, node_to=j)
+                    connections.append(connection)
+        return connections
+
+    def get_nodes(self) -> list:
+        return self.nodes
 
 
 # Define an ETX between each connection.
