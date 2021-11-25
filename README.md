@@ -1,4 +1,4 @@
-# IoT
+# Internet of Things
 This repository is for an Internet of Things (IoT) project regarding routing protocol. It is created by 
 @Adam Vergara and @Aksel Steen Thomassen
 
