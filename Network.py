@@ -12,6 +12,7 @@ class Network:
         self.noOfNodes: int = no_of_nodes
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
         self.neighbourRadius: float = 1.5
+        self.connections = self.__find_neighbours()
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
@@ -20,12 +21,12 @@ class Network:
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = round(random.uniform(1, 4), 2)
+            rank = 0  # round(random.uniform(1, 4), 2)
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
 
-    def find_neighbours(self):
+    def __find_neighbours(self):
         connections = []
         nodes = self.nodes
         for i in nodes:
@@ -40,7 +41,17 @@ class Network:
 
     def send_DIO(self):
         root = self.nodes[0]  # Just pick root as the first node for now
-        dio = DIO(DAGRank=0)
+        root.set_rank(0)
+        dio = DIO(DAGRank=root.get_rank())
+        all_connections = self.connections
+        neighbours = []
+        for i in all_connections:
+            if i.get_node_from() == root:
+                neighbours.append(i.nodeTo)
+        # Nu sender vi
+        for i in neighbours:
+            if not i.isBusy:
+                i.receive_message(dio)
         pass
 
     def get_nodes(self) -> list:
@@ -48,6 +59,9 @@ class Network:
 
     def get_nr_of_nodes(self) -> int:
         return self.noOfNodes
+
+    def get_connections(self) -> list:
+        return self.connections
 
 
 # Define an ETX between each connection.
