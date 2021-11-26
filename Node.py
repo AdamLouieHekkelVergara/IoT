@@ -16,10 +16,10 @@ class Node:
 
     def receive_message(self, message: DIO):
         self.isBusy = True
-        rank = message.get_rank() + 1
-        self.rank = rank
-        time_delay = np.random.uniform(0, 5/1000)
-        time.sleep(time_delay)
+        new_rank = message.get_rank() + 1
+        self.rank = new_rank
+        # time_delay = np.random.uniform(0, 5/1000)
+        # time.sleep(time_delay)
         self.isBusy = False
 
 

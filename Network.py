@@ -12,7 +12,7 @@ class Network:
         self.noOfNodes: int = no_of_nodes
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
         self.neighbourRadius: float = 1.5
-        self.connections = self.__find_neighbours()
+        self.connections = self.__initialize_neighbours()
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
@@ -26,7 +26,8 @@ class Network:
             nodelist.append(node)
         return nodelist
 
-    def __find_neighbours(self):
+    # Neighbour finding algorithm
+    def __initialize_neighbours(self):
         connections = []
         nodes = self.nodes
         for i in nodes:
@@ -39,20 +40,34 @@ class Network:
                     connections.append(connection)
         return connections
 
-    def send_DIO(self):
-        root = self.nodes[0]  # Just pick root as the first node for now
-        root.set_rank(0)
-        dio = DIO(DAGRank=root.get_rank())
+    # def generate_ranks(self):
+    #     root = self.nodes[0]  # Just pick root as the first node for now
+    #     root.set_rank(0)
+    #     neighbours = self.send_DIO(root)
+    #     neighbours_without_rank = []
+    #     for i in neighbours:
+    #         if i.get_rank() != 0:
+    #             continue
+    #         self.send_DIO(i)
+
+    def send_DIO(self, node_sender: Node):
+        dio = DIO(DAGRank=node_sender.get_rank())
+        neighbours = self.__find_neighbours(node_sender)
+        # Nu sender vi
+        for i in neighbours:
+            if i.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
+                # print("i.rank:", i.get_rank())
+                # print("root rank", self.nodes[0].get_rank())
+                i.receive_message(dio)
+                self.send_DIO(node_sender=i)
+
+    def __find_neighbours(self, node: Node):
         all_connections = self.connections
         neighbours = []
         for i in all_connections:
-            if i.get_node_from() == root:
+            if i.get_node_from() == node:
                 neighbours.append(i.nodeTo)
-        # Nu sender vi
-        for i in neighbours:
-            if not i.isBusy:
-                i.receive_message(dio)
-        pass
+        return neighbours
 
     def get_nodes(self) -> list:
         return self.nodes

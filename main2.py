@@ -6,13 +6,12 @@ network = Network(no_of_nodes)
 nodes = network.get_nodes()
 connections = network.get_connections()
 
+nodes[0].set_rank(1)
+network.send_DIO(nodes[0])
+for i in nodes:
+    print(i.get_rank())
+print("root",nodes[0].get_rank())
 
-print("x",nodes[0].get_X())
-print("y",nodes[0].get_Y())
-neighbours = network.send_DIO()
-for i in neighbours:
-    print(i.get_X())
-    print(i.get_Y())
 
 # PLOT NODES AND CONNECTIONS
 for i in nodes:
