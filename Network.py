@@ -1,5 +1,5 @@
 import math
-
+from Connection import Connection
 from Node import Node
 from Messages import DIO, DAO
 import random
@@ -16,18 +16,18 @@ class Network:
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
-    def __define_nodes_in_network(self, no_of_nodes):
+    def __define_nodes_in_network(self, no_of_nodes) -> []:
         nodelist = []
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = 0  # round(random.uniform(1, 4), 2)
+            rank = 0 #round(np.random.uniform(1, 10), 1)
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
 
     # Neighbour finding algorithm
-    def __initialize_neighbours(self):
+    def __initialize_neighbours(self) -> []:
         connections = []
         nodes = self.nodes
         for i in nodes:
@@ -69,6 +69,44 @@ class Network:
                 neighbours.append(i.nodeTo)
         return neighbours
 
+        # Send_DAO creates a DAO message with a DAO rank and an instanceID
+        # send_DAO can only send DAO messages upwards or to the sides.
+        # if a DAO message had been received from the sides (neighbor) it can only send upwards.
+        # Sends to the parent (lower rank) with the lowest ETX.
+        # When a 'send' has been successful, it receives a DAO_ACK (true if successful false otherwise)
+        # TODO: create "findBestParent" algorithm based on multiple factors (better objective function).
+
+    def send_DAO(self, dao: DAO):
+        # is the node the
+        rank_from = dao.get_rank() # rank of the from node.
+        this_node = None
+        for node in self.get_nodes():
+            if node.get_ID() == dao.get_node_ID():
+                this_node = node
+
+        dao_new = DAO(this_node.get_rank(), this_node.get_ID())
+
+        print("node: ", this_node.get_ID())
+        # determine who to send to!
+        neighbors_ETX = []
+        neighbor_connections = []
+        for i in self.connections:
+            if i.nodeFrom.get_ID() == this_node.get_ID() and i.nodeTo.get_rank() < rank_from:
+                neighbors_ETX.append(i.get_ETX())
+                neighbor_connections.append(i)
+                print(f"we have a neighbor! with rank going from => {rank_from} to {i.nodeTo.get_rank()}")
+
+        # is the sender node a neighbor (= equal rank) send to parent only
+        # is the sender a child ( higher rank) send to parent OR neighbor
+        for connection in neighbor_connections:
+            if connection.get_ETX() == min(neighbors_ETX):
+                connection.nodeTo.receive_message_DAO(dao_new)
+                return connection.nodeTo
+        return
+
+
+
+
     def get_nodes(self) -> list:
         return self.nodes
 
@@ -79,22 +117,3 @@ class Network:
         return self.connections
 
 
-# Define an ETX between each connection.
-# To simplify it is set at random between 1 and 3.
-
-
-class Connection:
-    # constructor
-    def __init__(self, ETX: float, node_from: Node, node_to: Node):
-        self.ETX: float = ETX  # should probably be random => round(random.uniform(1, 3), 2)
-        self.nodeFrom: Node = node_from
-        self.nodeTo: Node = node_to
-
-    def get_ETX(self) -> float:
-        return self.ETX
-
-    def get_node_from(self) -> Node:
-        return self.nodeFrom
-
-    def get_node_to(self) -> Node:
-        return self.nodeTo
