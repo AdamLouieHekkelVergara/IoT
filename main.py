@@ -31,7 +31,15 @@ def simulateDAO(dao: DAO, nrOfRecursions: int):
         # run the send_Dao message, which gives the node it sends to!
         nodeTo = network.send_DAO(dao)
         # plot the connection:
-        plt.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
+
+        ax = plt.subplot(111)
+        lines = ax.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
+        plt.pause(1.5)
+        plt.legend(lines[:1], ['Dao message route'],bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=50.5)
+        box = ax.get_position()
+
+        ax.set_position([0.125, 0.11 + 0.693 * 0.1,0.775, 0.693 * 0.9])
+
         # run recursive!
         new_dao = DAO(nodeTo.get_rank(), nodeTo.get_ID())
 
@@ -50,6 +58,8 @@ plt.show()
 
 
 SIMULATION_TIME = 120
+
+
 
 
 def DODAG(env):

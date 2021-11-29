@@ -21,7 +21,7 @@ class Network:
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = 0 #round(np.random.uniform(1, 10), 1)
+            rank = round(np.random.uniform(1, 10), 1)
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
