@@ -5,7 +5,7 @@ import uuid
 class DIO:
     # constructor
     # has 4 variables: DAGRank, DAGID
-    def __init__(self, DAGRank: int, N):
+    def __init__(self, DAGRank: int):
         self.DAGRank: int = DAGRank
         self.DAGID: uuid = uuid.uuid4()
 
