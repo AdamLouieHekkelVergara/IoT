@@ -5,7 +5,7 @@ import uuid
 class DIO:
     # constructor
     # has 4 variables: DAGRank, DAGID
-    def __init__(self, DAGRank: int):
+    def __init__(self, DAGRank: int, N):
         self.DAGRank: int = DAGRank
         self.DAGID: uuid = uuid.uuid4()
 
@@ -20,12 +20,16 @@ class DIO:
 class DAO:
     # constructor
     # has 4 variables: DAGRank, DAGID
-    def __init__(self, DAORank: int):
+    def __init__(self, DAORank: int, nodeID):
         self.DAORank: int = DAORank  # is the rank of the node issuing the message.
         self.InstanceID: uuid = uuid.uuid4()
+        self.NodeID = nodeID
 
     def get_rank(self) -> int:
         return self.DAORank
 
     def get_ID(self) -> uuid:
         return self.InstanceID
+
+    def get_node_ID(self) -> uuid:
+        return self.NodeID

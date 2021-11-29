@@ -1,6 +1,6 @@
 import random
 import uuid
-from Messages import DIO
+from Messages import DIO, DAO
 import time
 import numpy as np
 
@@ -21,6 +21,9 @@ class Node:
         time_delay = np.random.uniform(0, 5/1000)
         time.sleep(time_delay)
         self.isBusy = False
+
+    def receive_message_DAO(self, message: DAO):
+        self.isBusy = True
 
 
     def get_ID(self) -> uuid:
