@@ -1,4 +1,6 @@
 import math
+import uuid
+
 from Connection import Connection
 from Node import Node
 from Messages import DIO, DAO
@@ -21,7 +23,7 @@ class Network:
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = 0 #round(np.random.uniform(1, 10), 1)
+            rank = 0
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
@@ -41,12 +43,12 @@ class Network:
         return connections
 
     def generate_ranks(self, root: Node):
-        current_rank = 0
+        current_rank: int = 0
         nodes_with_current_rank = [root]
         while len(nodes_with_current_rank) > 0:
             for i in nodes_with_current_rank:
                 dio = DIO(DAGRank=i.get_rank())
-                neighbours = self.__find_neighbours(i)
+                neighbours = self.__find_neighbours(i.get_ID())
                 for j in neighbours:
                     if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
                         j.receive_message(dio)
@@ -61,11 +63,11 @@ class Network:
                 nodes_with_rank.append(i)
         return nodes_with_rank
 
-    def __find_neighbours(self, node: Node):
+    def __find_neighbours(self, node_id: uuid):
         all_connections = self.connections
         neighbours = []
         for i in all_connections:
-            if i.get_node_from() == node:
+            if i.get_node_from().get_ID() == node_id:
                 neighbours.append(i.nodeTo)
         return neighbours
 
@@ -103,9 +105,6 @@ class Network:
                 connection.nodeTo.receive_message_DAO(dao_new)
                 return connection.nodeTo
         return
-
-
-
 
     def get_nodes(self) -> list:
         return self.nodes
