@@ -4,6 +4,7 @@ from Node import Node
 from Messages import DIO, DAO
 import random
 import numpy as np
+from Connection import Connection
 
 
 class Network:
@@ -12,7 +13,11 @@ class Network:
         self.noOfNodes: int = no_of_nodes
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
         self.neighbourRadius: float = 1.5
+<<<<<<< HEAD
+        self.connections: [] = self.__find_neighbours()
+=======
         self.connections = self.__initialize_neighbours()
+>>>>>>> cc8574b34c7972473e79480496e149ffa26c6a23
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
@@ -26,8 +31,12 @@ class Network:
             nodelist.append(node)
         return nodelist
 
+<<<<<<< HEAD
+    def __find_neighbours(self) -> []:
+=======
     # Neighbour finding algorithm
-    def __initialize_neighbours(self) -> []:
+    def __initialize_neighbours(self):
+>>>>>>> cc8574b34c7972473e79480496e149ffa26c6a23
         connections = []
         nodes = self.nodes
         for i in nodes:
