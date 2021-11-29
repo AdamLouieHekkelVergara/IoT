@@ -7,13 +7,15 @@ import random
 import simpy
 
 network = Network(110)
+nodes = network.get_nodes()
+network.generate_ranks(root=nodes[0])
 
-xs = []
-ys = []
-for node in network.nodes:
-    xs.append(node.get_X())
-    ys.append(node.get_Y())
-plt.plot(xs, ys, 'ro')
+# PLOT NODES AND CONNECTIONS
+for i in nodes:
+    x = i.get_X()
+    y = i.get_Y()
+    plt.plot(x, y, 'ro')
+    plt.annotate(i.get_rank(), (x,y),size=7)
 
 
 def simulateDAO(dao: DAO, nrOfRecursions: int):
@@ -34,22 +36,19 @@ def simulateDAO(dao: DAO, nrOfRecursions: int):
 
         ax = plt.subplot(111)
         lines = ax.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
-        plt.pause(1.5)
-        plt.legend(lines[:1], ['Dao message route'],bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=50.5)
-        box = ax.get_position()
+        plt.pause(1)
+        plt.legend(lines[:1], ['Dao message route'], bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=50.5)
 
         ax.set_position([0.125, 0.11 + 0.693 * 0.1,0.775, 0.693 * 0.9])
-
         # run recursive!
         new_dao = DAO(nodeTo.get_rank(), nodeTo.get_ID())
 
         simulateDAO(new_dao, nrOfRecursions = nrOfRecursions + 1)
 
 
-nodeFrom = network.nodes[10]  # send from a Dao from an arbitrary node.
+nodeFrom = network.nodes[109]  # send from a Dao from an arbitrary node.
 dao = DAO(nodeFrom.get_rank(), nodeFrom.get_ID())
-#nodeTo = network.send_DAO(nodeFrom)
-# nodeTo2 = network.send_DAO(nodeTo)
+
 
 #plt.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
 #plt.plot(nodeFrom.get_X(), nodeFrom.get_Y(), 'bo')

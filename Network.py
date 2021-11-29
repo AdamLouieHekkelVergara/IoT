@@ -4,6 +4,7 @@ from Node import Node
 from Messages import DIO, DAO
 import random
 import numpy as np
+import uuid
 
 
 class Network:
@@ -21,7 +22,7 @@ class Network:
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = round(np.random.uniform(1, 10), 1)
+            rank = 0  # round(np.random.uniform(1, 10), 1)
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
@@ -48,7 +49,7 @@ class Network:
                 dio = DIO(DAGRank=i.get_rank())
                 neighbours = self.__find_neighbours(i)
                 for j in neighbours:
-                    if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
+                    if j.get_rank() == 0:  # Only send DIO if receiver have not yet received a DIO
                         j.receive_message(dio)
             current_rank += 1
             nodes_with_current_rank = self.__find_nodes_with_rank(current_rank)
@@ -60,6 +61,12 @@ class Network:
             if i.get_rank() == rank:
                 nodes_with_rank.append(i)
         return nodes_with_rank
+
+    def __find_nodes_with_id(self, node_ID: uuid):
+        for node in self.get_nodes():
+            if node.get_ID() == node_ID:
+                return node
+        return
 
     def __find_neighbours(self, node: Node):
         all_connections = self.connections
@@ -77,35 +84,32 @@ class Network:
         # TODO: create "findBestParent" algorithm based on multiple factors (better objective function).
 
     def send_DAO(self, dao: DAO):
-        # is the node the
-        rank_from = dao.get_rank() # rank of the from node.
-        this_node = None
-        for node in self.get_nodes():
-            if node.get_ID() == dao.get_node_ID():
-                this_node = node
+        # find the Node from the DAO-message.
+        this_node = self.__find_nodes_with_id(dao.get_node_ID())
 
-        dao_new = DAO(this_node.get_rank(), this_node.get_ID())
-
-        print("node: ", this_node.get_ID())
-        # determine who to send to!
+        # determine who to send to from connections!
         neighbors_ETX = []
         neighbor_connections = []
         for i in self.connections:
-            if i.nodeFrom.get_ID() == this_node.get_ID() and i.nodeTo.get_rank() < rank_from:
+            # name booleans
+            is_rank_of_DAOReceiver_smaller: bool = i.nodeTo.get_rank() < this_node.get_rank()
+            is_NodeID_equal: bool = i.nodeFrom.get_ID() == this_node.get_ID()
+            if is_NodeID_equal and is_rank_of_DAOReceiver_smaller:
                 neighbors_ETX.append(i.get_ETX())
                 neighbor_connections.append(i)
-                print(f"we have a neighbor! with rank going from => {rank_from} to {i.nodeTo.get_rank()}")
+                print(f"we have a neighbor! with rank: {i.nodeTo.get_rank()} and ETX: {i.get_ETX()}")
 
         # is the sender node a neighbor (= equal rank) send to parent only
         # is the sender a child ( higher rank) send to parent OR neighbor
         for connection in neighbor_connections:
-            if connection.get_ETX() == min(neighbors_ETX):
+            is_connection_with_lowest_ETX: bool = connection.get_ETX() == min(neighbors_ETX)
+            if is_connection_with_lowest_ETX:
+                dao_new = DAO(this_node.get_rank(), this_node.get_ID())
                 connection.nodeTo.receive_message_DAO(dao_new)
-                return connection.nodeTo
+                print(
+                    f"We choose the neighbor with rank: {connection.nodeTo.get_rank()} and ETX {connection.get_ETX()}")
+                return connection.nodeTo ## return the node we send to!
         return
-
-
-
 
     def get_nodes(self) -> list:
         return self.nodes
@@ -115,5 +119,3 @@ class Network:
 
     def get_connections(self) -> list:
         return self.connections
-
-
