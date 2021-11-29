@@ -22,7 +22,7 @@ class Network:
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
-            rank = 0  # round(np.random.uniform(1, 10), 1)
+            rank = 0
             node = Node(rank, x, y)
             nodelist.append(node)
         return nodelist
@@ -42,14 +42,14 @@ class Network:
         return connections
 
     def generate_ranks(self, root: Node):
-        current_rank = 0
+        current_rank: int = 0
         nodes_with_current_rank = [root]
         while len(nodes_with_current_rank) > 0:
             for i in nodes_with_current_rank:
                 dio = DIO(DAGRank=i.get_rank())
-                neighbours = self.__find_neighbours(i)
+                neighbours = self.__find_neighbours(i.get_ID())
                 for j in neighbours:
-                    if j.get_rank() == 0:  # Only send DIO if receiver have not yet received a DIO
+                    if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
                         j.receive_message(dio)
             current_rank += 1
             nodes_with_current_rank = self.__find_nodes_with_rank(current_rank)
@@ -62,20 +62,19 @@ class Network:
                 nodes_with_rank.append(i)
         return nodes_with_rank
 
+    def __find_neighbours(self, node_id: uuid):
+        all_connections = self.connections
+        neighbours = []
+        for i in all_connections:
+            if i.get_node_from().get_ID() == node_id:
+                neighbours.append(i.nodeTo)
+        return neighbours
+
     def __find_nodes_with_id(self, node_ID: uuid):
         for node in self.get_nodes():
             if node.get_ID() == node_ID:
                 return node
         return
-
-    def __find_neighbours(self, node: Node):
-        all_connections = self.connections
-        neighbours = []
-        for i in all_connections:
-            if i.get_node_from() == node:
-                neighbours.append(i.nodeTo)
-        return neighbours
-
         # Send_DAO creates a DAO message with a DAO rank and an instanceID
         # send_DAO can only send DAO messages upwards or to the sides.
         # if a DAO message had been received from the sides (neighbor) it can only send upwards.
