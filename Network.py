@@ -40,26 +40,26 @@ class Network:
                     connections.append(connection)
         return connections
 
-    # def generate_ranks(self):
-    #     root = self.nodes[0]  # Just pick root as the first node for now
-    #     root.set_rank(0)
-    #     neighbours = self.send_DIO(root)
-    #     neighbours_without_rank = []
-    #     for i in neighbours:
-    #         if i.get_rank() != 0:
-    #             continue
-    #         self.send_DIO(i)
+    def generate_ranks(self, root: Node):
+        current_rank = 0
+        nodes_with_current_rank = [root]
+        while len(nodes_with_current_rank) > 0:
+            for i in nodes_with_current_rank:
+                dio = DIO(DAGRank=i.get_rank())
+                neighbours = self.__find_neighbours(i)
+                for j in neighbours:
+                    if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
+                        j.receive_message(dio)
+            current_rank += 1
+            nodes_with_current_rank = self.__find_nodes_with_rank(current_rank)
+        root.set_rank(0)
 
-    def send_DIO(self, node_sender: Node):
-        dio = DIO(DAGRank=node_sender.get_rank())
-        neighbours = self.__find_neighbours(node_sender)
-        # Nu sender vi
-        for i in neighbours:
-            if i.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
-                # print("i.rank:", i.get_rank())
-                # print("root rank", self.nodes[0].get_rank())
-                i.receive_message(dio)
-                self.send_DIO(node_sender=i)
+    def __find_nodes_with_rank(self, rank: int):
+        nodes_with_rank = []
+        for i in self.nodes:
+            if i.get_rank() == rank:
+                nodes_with_rank.append(i)
+        return nodes_with_rank
 
     def __find_neighbours(self, node: Node):
         all_connections = self.connections

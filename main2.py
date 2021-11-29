@@ -5,17 +5,15 @@ no_of_nodes = 110
 network = Network(no_of_nodes)
 nodes = network.get_nodes()
 connections = network.get_connections()
-
-nodes[0].set_rank(1)
-network.send_DIO(nodes[0])
-for i in nodes:
-    print(i.get_rank())
-print("root",nodes[0].get_rank())
+network.generate_ranks(root=nodes[0])
 
 
 # PLOT NODES AND CONNECTIONS
 for i in nodes:
-    plt.plot(i.get_X(), i.get_Y(), 'ro')
+    x = i.get_X()
+    y = i.get_Y()
+    plt.plot(x, y, 'ro')
+    plt.annotate(i.get_rank(), (x,y))
 for i in connections:
     from_x = i.get_node_from().get_X()
     from_y = i.get_node_from().get_Y()
