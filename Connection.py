@@ -1,9 +1,15 @@
 from Node import Node
 import numpy as np
+
+# Define an ETX between each connection.
+# To simplify it is set at random between 1 and 3.
+
+
 class Connection:
     # constructor
     def __init__(self, ETX: float, node_from: Node, node_to: Node):
-        self.ETX: float = round(np.random.uniform(1, 3), 2) # should probably be random => round(random.uniform(1, 3), 2)
+        self.ETX: float = round(np.random.uniform(1, 3),
+                                2)  # should probably be random => round(random.uniform(1, 3), 2)
         self.nodeFrom: Node = node_from
         self.nodeTo: Node = node_to
 

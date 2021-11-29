@@ -1,5 +1,5 @@
 import math
-
+from Connection import Connection
 from Node import Node
 from Messages import DIO, DAO
 import random
@@ -116,5 +116,4 @@ class Network:
     def get_connections(self) -> list:
         return self.connections
 
-# Define an ETX between each connection.
-# To simplify it is set at random between 1 and 3.
+

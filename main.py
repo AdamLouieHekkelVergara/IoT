@@ -22,14 +22,19 @@ def simulateDAO(dao: DAO, nrOfRecursions: int):
         print("we stop")
         return
     else:
+        # get the node in the dao message in order to plot the connecting line!
         nodeFrom = None
         for node in network.get_nodes():
             if node.get_ID() == dao.get_node_ID():
                 nodeFrom = node
-                print("node 1: ",node)
+                print(f"this is the node from the dao message {nrOfRecursions}: ", node)
+        # run the send_Dao message, which gives the node it sends to!
         nodeTo = network.send_DAO(dao)
+        # plot the connection:
         plt.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
+        # run recursive!
         new_dao = DAO(nodeTo.get_rank(), nodeTo.get_ID())
+
         simulateDAO(new_dao, nrOfRecursions = nrOfRecursions + 1)
 
 
