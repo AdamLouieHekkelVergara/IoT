@@ -21,11 +21,7 @@ class Node:
     def receive_message_DAO(self, message: DAO):
         self.isBusy = True
 
-    def send_message(self):
-        new_DIO = DIO(self.rank)
-        yield self.env.timeout(0.1)  # it takes 0.1 second to create a dio.
-        print(f'message sent out at: {self.env.now}')
-        # Network.send_to_neigbors(self.ID, new_DIO)
+
 
     def get_ID(self) -> uuid:
         return self.ID
