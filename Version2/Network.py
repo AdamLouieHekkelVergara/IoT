@@ -1,4 +1,4 @@
-from Version2.messages import DIO
+from Version2.Messages import DIO
 from Version2.Node import Node
 import numpy as np
 import random

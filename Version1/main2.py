@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from Version2.network import Network
+from Version2.Network import Network
 
 
 no_of_nodes: int = 110

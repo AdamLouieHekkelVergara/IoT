@@ -1,6 +1,5 @@
 import uuid
-from Version2.messages import DIO, DAO
-
+from Version2.Messages import DIO, DAO
 
 
 class Node:
@@ -26,7 +25,7 @@ class Node:
         new_DIO = DIO(self.rank)
         yield self.env.timeout(0.1)  # it takes 0.1 second to create a dio.
         print(f'message sent out at: {self.env.now}')
-        #Network.send_to_neigbors(self.ID, new_DIO)
+        # Network.send_to_neigbors(self.ID, new_DIO)
 
     def get_ID(self) -> uuid:
         return self.ID

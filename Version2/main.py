@@ -1,5 +1,5 @@
 import simpy
-from Version2.network import Network
+from Version2.Network import Network
 
 print("Dodag")
 
