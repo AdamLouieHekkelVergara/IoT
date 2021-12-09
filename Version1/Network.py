@@ -1,6 +1,6 @@
 import math
 from Connection import Connection
-from Node import Node
+from Version2.Node import Node
 from Messages import DIO, DAO
 import numpy as np
 import uuid

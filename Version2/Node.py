@@ -1,31 +1,32 @@
 import uuid
-from .Messages import DIO,DAO
-import simpy
+from Version2.messages import DIO, DAO
 
 
-class Node(simpy.Resource):
+
+class Node:
     # constructor
-    def __init__(self, rank: int, positionX: float, positionY: float, env, max_capacity: int):
-        super().__init__(env, max_capacity)
+    def __init__(self, env, rank: int, positionX: float, positionY: float):
         self.ID: uuid = uuid.uuid4()
         self.rank: int = rank  # initial rank
         self.positionX: float = positionX
         self.positionY: float = positionY
-        self.isBusy: bool = False
+
+        self.env = env
 
     #
     def receive_message(self, message: DIO):
-        self.isBusy = True
         new_rank = message.get_rank() + 1
         self.rank = new_rank
-        # time_delay = np.random.uniform(0, 5/1000)
-        # time.sleep(time_delay)
-        self.isBusy = False
 
     # when called upon
     def receive_message_DAO(self, message: DAO):
         self.isBusy = True
 
+    def send_message(self):
+        new_DIO = DIO(self.rank)
+        yield self.env.timeout(0.1)  # it takes 0.1 second to create a dio.
+        print(f'message sent out at: {self.env.now}')
+        #Network.send_to_neigbors(self.ID, new_DIO)
 
     def get_ID(self) -> uuid:
         return self.ID
