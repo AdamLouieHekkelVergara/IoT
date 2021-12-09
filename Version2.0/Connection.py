@@ -1,4 +1,4 @@
-from Node import Node
+from .Node import Node
 import numpy as np
 
 # Define an ETX between each connection.

@@ -1,7 +1,7 @@
 import math
-from Connection import Connection
-from Node import Node
-from Messages import DIO, DAO
+from . import Connection
+from . import Node
+from . import Messages
 import numpy as np
 import uuid
 
