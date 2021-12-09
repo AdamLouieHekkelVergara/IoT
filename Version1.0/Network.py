@@ -2,10 +2,9 @@ import math
 from Connection import Connection
 from Node import Node
 from Messages import DIO, DAO
-import random
 import numpy as np
 import uuid
-import simpy
+
 
 class Network():
     # constructor
@@ -105,11 +104,15 @@ class Network():
         for connection in neighbor_connections:
             is_connection_with_lowest_ETX: bool = connection.get_ETX() == min(neighbors_ETX)
             if is_connection_with_lowest_ETX:
-                dao_new = DAO(this_node.get_rank(), this_node.get_ID())
-                connection.nodeTo.receive_message_DAO(dao_new)
-                print(
-                    f"We choose the neighbor with rank: {connection.nodeTo.get_rank()} and ETX {connection.get_ETX()}")
-                return connection.nodeTo ## return the node we send to!
+                with connection.nodeTo.request() as req:
+                    results = yield req
+                    if req in results:
+                        # We got to Node
+                        dao_new = DAO(this_node.get_rank(), this_node.get_ID())
+                        connection.nodeTo.receive_message_DAO(dao_new)
+                        print(
+                        f"We choose the neighbor with rank: {connection.nodeTo.get_rank()} and ETX {connection.get_ETX()}")
+                    return connection.nodeTo ## return the node we send to!
         return
 
     def get_nodes(self) -> list:

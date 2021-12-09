@@ -1,8 +1,5 @@
-import random
 import uuid
 from Messages import DIO, DAO
-import time
-import numpy as np
 import simpy
 
 
@@ -16,6 +13,7 @@ class Node(simpy.Resource):
         self.positionY: float = positionY
         self.isBusy: bool = False
 
+    #
     def receive_message(self, message: DIO):
         self.isBusy = True
         new_rank = message.get_rank() + 1
@@ -24,6 +22,7 @@ class Node(simpy.Resource):
         # time.sleep(time_delay)
         self.isBusy = False
 
+    # when called upon
     def receive_message_DAO(self, message: DAO):
         self.isBusy = True
 
