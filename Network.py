@@ -5,15 +5,17 @@ from Messages import DIO, DAO
 import random
 import numpy as np
 import uuid
+import simpy
 
-
-class Network:
+class Network():
     # constructor
-    def __init__(self, no_of_nodes: int):
+    def __init__(self, env, no_of_nodes: int):
         self.noOfNodes: int = no_of_nodes
+        self.env = env
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
         self.neighbourRadius: float = 1.5
         self.connections = self.__initialize_neighbours()
+
 
     # assign each node a random position and rank in the network
     # ToDO: make the rank not random.
@@ -23,7 +25,7 @@ class Network:
             x = round(np.random.uniform(0, 10), 1)
             y = round(i / (no_of_nodes / 10))
             rank = 0
-            node = Node(rank, x, y)
+            node = Node(rank, x, y, self.get_env(), 1)
             nodelist.append(node)
         return nodelist
 
@@ -118,3 +120,7 @@ class Network:
 
     def get_connections(self) -> list:
         return self.connections
+
+    def get_env(self):
+        return self.env
+

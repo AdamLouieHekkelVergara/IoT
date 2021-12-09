@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 from Network import Network
 
-no_of_nodes = 110
+
+no_of_nodes: int = 110
 network = Network(no_of_nodes)
 nodes = network.get_nodes()
 connections = network.get_connections()
+# sends dio-messages to generate ranks
 network.generate_ranks(root=nodes[55])
 
 

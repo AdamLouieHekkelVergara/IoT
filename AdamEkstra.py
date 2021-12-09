@@ -1,11 +1,14 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+import imageio
 
-plt.axis([0, 100, 0, 1])
+# build gif
+#with imageio.get_writer('mygif.gif', mode='I') as writer:
+#    for filename in filenames:
+#        image = imageio.imread(filename)
+#        writer.append_data(image)
 
-for i in range(100):
-    y = np.random.random()
-    plt.scatter(i, y)
-    plt.pause(0.5)
-
-plt.show()
+# Remove files
+#for filename in set(filenames):
+#    os.remove(filename)

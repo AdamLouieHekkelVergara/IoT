@@ -3,11 +3,13 @@ import uuid
 from Messages import DIO, DAO
 import time
 import numpy as np
+import simpy
 
 
-class Node:
+class Node(simpy.Resource):
     # constructor
-    def __init__(self, rank: int, positionX: float, positionY: float):
+    def __init__(self, rank: int, positionX: float, positionY: float, env, max_capacity: int):
+        super().__init__(env, max_capacity)
         self.ID: uuid = uuid.uuid4()
         self.rank: int = rank  # initial rank
         self.positionX: float = positionX

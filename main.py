@@ -1,12 +1,17 @@
 from Messages import DAO
-from Node import Node
 from Network import Network
+from Node import Node
 import matplotlib.pyplot as plt
 import numpy as ns
 import random
 import simpy
+import imageio
+import os
 
-network = Network(110)
+env = simpy.Environment()
+
+
+network = Network(env, 110)
 nodes = network.get_nodes()
 network.generate_ranks(root=nodes[0])
 
@@ -18,6 +23,8 @@ for i in nodes:
     plt.annotate(i.get_rank(), (x,y),size=7)
 
 
+
+filenames = []
 def simulateDAO(dao: DAO, nrOfRecursions: int):
     print("", nrOfRecursions)
     if network.send_DAO(dao) is None or nrOfRecursions == 100:
@@ -35,11 +42,15 @@ def simulateDAO(dao: DAO, nrOfRecursions: int):
         # plot the connection:
 
         ax = plt.subplot(111)
+        ax.set_position([0.125, 0.11 + 0.693 * 0.1, 0.775, 0.693 * 0.9])
         lines = ax.plot([nodeFrom.get_X(), nodeTo.get_X()], [nodeFrom.get_Y(), nodeTo.get_Y()], 'k')
-        plt.pause(1)
-        plt.legend(lines[:1], ['Dao message route'], bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=50.5)
+        filename = f'{nrOfRecursions}.png'
+        filenames.append(filename)
+        plt.savefig(filename)
+        plt.pause(0.5)
+        #plt.legend(lines[:1], ['Dao message route'], bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=50.5)
 
-        ax.set_position([0.125, 0.11 + 0.693 * 0.1,0.775, 0.693 * 0.9])
+
         # run recursive!
         new_dao = DAO(nodeTo.get_rank(), nodeTo.get_ID())
 
@@ -55,8 +66,15 @@ dao = DAO(nodeFrom.get_rank(), nodeFrom.get_ID())
 simulateDAO(dao,0)
 plt.show()
 
+# build gif
+with imageio.get_writer('mygif.gif', mode='I') as writer:
+    for filename in filenames:
+        image = imageio.imread(filename)
+        writer.append_data(image)
 
-SIMULATION_TIME = 120
+# Remove files
+for filename in set(filenames):
+    os.remove(filename)
 
 
 
