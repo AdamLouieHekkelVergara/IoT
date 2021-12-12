@@ -5,14 +5,14 @@ import uuid
 class DIO:
     # constructor
     # has 4 variables: DAGRank, DAGID
-    def __init__(self, DAGRank: int):
+    def __init__(self, DAGRank: int, id :int ):
         self.DAGRank: int = DAGRank
-        self.DAGID: uuid = uuid.uuid4()
+        self.DAGID  = id #uuid.uuid4()
 
     def get_rank(self) -> int:
         return self.DAGRank
 
-    def get_ID(self) -> uuid:
+    def get_ID(self):
         return self.DAGID
 
 
