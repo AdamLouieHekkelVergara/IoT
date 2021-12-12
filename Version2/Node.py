@@ -16,11 +16,16 @@ class Node(simpy.Resource):
         self.env = env
 
     #
-    def receive_message_DIO(self, message: DIO):
-        # new_rank = message.get_rank() + 1
-        # self.rank = new_rank
-        yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
-        print(f'At time {self.env.now}, message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
+    def receive_message(self, message: DIO):
+        if isinstance(message, DIO):
+            print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
+            # new_rank = message.get_rank() + 1
+            # self.rank = new_rank
+            yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
+            print(f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
+        # TODO implement this.
+        elif isinstance(message, DAO):
+            print("it is DAO")
 
     # when called upon
     def receive_message_DAO(self, message: DAO):
