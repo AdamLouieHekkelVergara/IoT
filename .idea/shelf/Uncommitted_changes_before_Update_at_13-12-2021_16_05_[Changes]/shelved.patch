@@ -1,0 +1,189 @@
+Index: Version2/Network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\n\r\nfrom Version2.Messages import DIO\r\nfrom Version2.Node import Node\r\nfrom Version2.Connection import Connection\r\nimport numpy as np\r\nimport random\r\nimport math\r\n\r\n\r\nclass Network:\r\n    # constructor\r\n    def __init__(self, env, no_of_nodes: int):\r\n        self.noOfNodes: int = no_of_nodes\r\n        self.env = env\r\n        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)\r\n        self.neighbourRadius: float = 15  # 1.5\r\n        self.connections = self.__initialize_neighbours()\r\n\r\n    def source(self, amountOfMessages, interval):\r\n        \"\"\"Source generates messages randomly\"\"\"\r\n        for i in range(amountOfMessages):\r\n            # make a random node from the network send a random message.\r\n            for node in self.nodes:\r\n                # Request the node : wait for the node to become available\r\n                with node.request() as req:\r\n                    yield req\r\n                    ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!\r\n                    self.env.process(self.send_message_dio(node, i))\r\n            t = interval # TODO implement a trickle timer function instead of using t!\r\n            yield self.env.timeout(t)  # wait time 't' before sending a new message.\r\n\r\n    def send_message_dio(self, node, message_number: int):\r\n        ## Create new DIO message\r\n        print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')\r\n        dio = DIO(node.get_rank(), message_number)\r\n        yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.\r\n        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')\r\n\r\n        for i in self.__find_neighbours(node.get_ID()):  # get all neighbors\r\n            # request neighboring Node from the environment!\r\n            with i.request() as req:\r\n                # Say: Get the node before we timeout!\r\n                results = yield req | self.env.timeout(3)  ## renege after timeout time.\r\n                if req in results:\r\n                    # if this is not None => We got the node!!\r\n\r\n                    # We now sent out, by calling the Nodes \"receive_message method\":\r\n                    print(f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')\r\n                    # TODO: Calling the receive_message, should also change the rank!\r\n                    yield self.env.process(i.receive_message(dio))\r\n\r\n\r\n                else:\r\n                    # We  did not succesfully get a node before timeout! => reneged\r\n                    # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?\r\n                    print(\r\n                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {i.get_ID()}')\r\n\r\n\r\n    # TODO: Implement this method also:\r\n    def send_message_dao(self, node: Node, message_number_int):\r\n        pass\r\n\r\n\r\n    ## returns a list of nodes containing neighbors.\r\n    def __find_neighbours(self, node_id: uuid) -> []:\r\n        all_connections = self.connections\r\n        neighbours = []\r\n        for i in all_connections:\r\n            if i.get_node_from().get_ID() == node_id:\r\n                neighbours.append(i.nodeTo)\r\n        return neighbours\r\n\r\n    # assign each node a random position and rank in the network\r\n    def __define_nodes_in_network(self, no_of_nodes) -> []:\r\n        nodelist = []\r\n        for i in range(no_of_nodes):\r\n            x = round(np.random.uniform(0, 10), 1)\r\n            y = round(i / (no_of_nodes / 10))\r\n            rank = None\r\n            max_capacity = 1\r\n            node = Node(self.env, max_capacity, rank, x, y)\r\n            nodelist.append(node)\r\n        nodelist[0].set_rank(0)  # define node 0 to be root\r\n        return nodelist\r\n\r\n    # Neighbour finding algorithm\r\n    def __initialize_neighbours(self) -> []:\r\n        connections = []\r\n        nodes = self.nodes\r\n        for i in nodes:\r\n            for j in nodes:\r\n                if i.get_ID() == j.get_ID():\r\n                    continue\r\n                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)\r\n                if dist <= self.neighbourRadius:\r\n                    connection = Connection(ETX=1, node_from=i, node_to=j)\r\n                    connections.append(connection)\r\n        return connections\r\n\r\n    def get_nodes(self) -> list:\r\n        return self.nodes\r\n\r\n    def get_nr_of_nodes(self) -> int:\r\n        return self.noOfNodes\r\n\r\n    def get_connections(self) -> list:\r\n        return self.connections\r\n\r\n    def get_env(self):\r\n        return self.env\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/Network.py b/Version2/Network.py
+--- a/Version2/Network.py	(revision c7ff843a1ecf20b4efe063493d6ecff7321eecc6)
++++ b/Version2/Network.py	(date 1639407663994)
+@@ -23,47 +23,51 @@
+             # make a random node from the network send a random message.
+             for node in self.nodes:
+                 # Request the node : wait for the node to become available
++                # print(f"At time {self.env.now} we REQUEST {node.ID}")
+                 with node.request() as req:
+                     yield req
++                    # print(f"At time {self.env.now} the request for {node.ID} has been yielded")
+                     ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!
+                     self.env.process(self.send_message_dio(node, i))
+-            t = interval # TODO implement a trickle timer function instead of using t!
++            t = interval  # TODO implement a trickle timer function instead of using t!
+             yield self.env.timeout(t)  # wait time 't' before sending a new message.
+ 
+     def send_message_dio(self, node, message_number: int):
+         ## Create new DIO message
+         print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')
+         dio = DIO(node.get_rank(), message_number)
+-        yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
++        yield self.env.timeout(np.random.randint(9, 10))  # it takes between 1 and 10  seconds to create a dio.
+         print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
+ 
+-        for i in self.__find_neighbours(node.get_ID()):  # get all neighbors
++        for neighbor in self.__find_neighbours(node.get_ID()):  # get all neighbors
+             # request neighboring Node from the environment!
+-            with i.request() as req:
++            with neighbor.request() as req:
+                 # Say: Get the node before we timeout!
+                 results = yield req | self.env.timeout(3)  ## renege after timeout time.
+                 if req in results:
+                     # if this is not None => We got the node!!
+ 
+                     # We now sent out, by calling the Nodes "receive_message method":
+-                    print(f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
++                    print(
++                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to '
++                        f'Node:   {neighbor.get_ID()}')
+                     # TODO: Calling the receive_message, should also change the rank!
+-                    yield self.env.process(i.receive_message(dio))
++                    yield self.env.process(neighbor.receive_message(dio))
+ 
+ 
+                 else:
+-                    # We  did not succesfully get a node before timeout! => reneged
++                    # We  did not successfully get a node before timeout! => reneged
+                     # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?
+                     print(
+-                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {i.get_ID()}')
++                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
++
+ 
+ 
+     # TODO: Implement this method also:
+     def send_message_dao(self, node: Node, message_number_int):
+         pass
+ 
+-
+-    ## returns a list of nodes containing neighbors.
++    # returns a list of nodes containing neighbors.
+     def __find_neighbours(self, node_id: uuid) -> []:
+         all_connections = self.connections
+         neighbours = []
+@@ -99,6 +103,19 @@
+                     connections.append(connection)
+         return connections
+ 
++    def __find_nodes_with_rank(self, rank: int):
++        nodes_with_rank = []
++        for i in self.nodes:
++            if i.get_rank() == rank:
++                nodes_with_rank.append(i)
++        return nodes_with_rank
++
++    def __find_nodes_with_id(self, node_ID: uuid):
++        for node in self.get_nodes():
++            if node.get_ID() == node_ID:
++                return node
++        return
++
+     def get_nodes(self) -> list:
+         return self.nodes
+ 
+Index: Version2/main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import simpy\r\nimport matplotlib.pyplot as plt\r\nfrom Version2.Network import Network\r\n\r\ndef plot_initial_network(nodes :[], connections: []):\r\n    # PLOT NODES AND CONNECTIONS\r\n    for i in nodes:\r\n        x = i.get_X()\r\n        y = i.get_Y()\r\n        plt.plot(x, y, 'ro')\r\n        plt.annotate(i.get_rank(), (x, y))\r\n    for i in connections:\r\n        from_x = i.get_node_from().get_X()\r\n        from_y = i.get_node_from().get_Y()\r\n        to_x = i.get_node_to().get_X()\r\n        to_y = i.get_node_to().get_Y()\r\n        plt.plot([from_x, to_x], [from_y, to_y], 'k')\r\n    plt.show()\r\n\r\n\r\nprint(\"Dodag\")\r\n\r\n\r\ndef main():\r\n    NEW_MESSAGES = 2 # Total number of customers\r\n    INTERVAL_MESSAGES = 10  # Generate new customers roughly every x milli-seconds\r\n\r\n    env = simpy.Environment()\r\n    # initialize network with number of nodes placed on a grid:\r\n    network = Network(env, 3)\r\n\r\n    # plot the initial network!\r\n    plot_initial_network(network.get_nodes(), network.get_connections())\r\n\r\n\r\n    env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))\r\n    env.run()\r\n\r\n\r\n\r\nmain()\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/main.py b/Version2/main.py
+--- a/Version2/main.py	(revision c7ff843a1ecf20b4efe063493d6ecff7321eecc6)
++++ b/Version2/main.py	(date 1639334416741)
+@@ -33,7 +33,7 @@
+     plot_initial_network(network.get_nodes(), network.get_connections())
+ 
+ 
+-    env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))
++    env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))
+     env.run()
+ 
+ 
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.7\" project-jdk-type=\"Python SDK\" />\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision c7ff843a1ecf20b4efe063493d6ecff7321eecc6)
++++ b/.idea/misc.xml	(date 1639334416756)
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (IoT)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: Version2/main2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/main2.py b/Version2/main2.py
+new file mode 100644
+--- /dev/null	(date 1639334416787)
++++ b/Version2/main2.py	(date 1639334416787)
+@@ -0,0 +1,30 @@
++import matplotlib.pyplot as plt
++import simpy
++from Network import Network
++from Node import Node
++
++
++env = simpy.Environment()
++no_of_nodes: int = 110
++network = Network(env, no_of_nodes)
++nodes = network.get_nodes()
++connections = network.get_connections()
++
++node = simpy.Resource(env, capacity=1)
++env.process(Node.source(self=nodes[0], env=env, number=5, interval=10))
++env.run()
++
++
++# PLOT NODES AND CONNECTIONS
++# for i in nodes:
++#     x = i.get_X()
++#     y = i.get_Y()
++#     plt.plot(x, y, 'ro')
++#     plt.annotate(i.get_rank(), (x, y))
++# for i in connections:
++#     from_x = i.get_node_from().get_X()
++#     from_y = i.get_node_from().get_Y()
++#     to_x = i.get_node_to().get_X()
++#     to_y = i.get_node_to().get_Y()
++#     plt.plot([from_x, to_x], [from_y, to_y], 'k')
++# plt.show()
+Index: .idea/IoT.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<module type=\"PYTHON_MODULE\" version=\"4\">\r\n  <component name=\"NewModuleRootManager\">\r\n    <content url=\"file://$MODULE_DIR$\">\r\n      <excludeFolder url=\"file://$MODULE_DIR$/venv\" />\r\n    </content>\r\n    <orderEntry type=\"jdk\" jdkName=\"Python 3.7\" jdkType=\"Python SDK\" />\r\n    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\r\n  </component>\r\n  <component name=\"TestRunnerService\">\r\n    <option name=\"PROJECT_TEST_RUNNER\" value=\"Unittests\" />\r\n  </component>\r\n</module>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/IoT.iml b/.idea/IoT.iml
+--- a/.idea/IoT.iml	(revision c7ff843a1ecf20b4efe063493d6ecff7321eecc6)
++++ b/.idea/IoT.iml	(date 1639334416803)
+@@ -4,7 +4,7 @@
+     <content url="file://$MODULE_DIR$">
+       <excludeFolder url="file://$MODULE_DIR$/venv" />
+     </content>
+-    <orderEntry type="jdk" jdkName="Python 3.7" jdkType="Python SDK" />
++    <orderEntry type="inheritedJdk" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="TestRunnerService">
+diff --git a/Version2/__init__.py b/Version2/__init__.py
+deleted file mode 100644

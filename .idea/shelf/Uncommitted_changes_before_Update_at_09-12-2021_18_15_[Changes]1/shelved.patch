@@ -1,0 +1,148 @@
+Index: Version2/Node.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\nfrom Version2.messages import DIO, DAO\r\n\r\n\r\n\r\nclass Node:\r\n    # constructor\r\n    def __init__(self, env, rank: int, positionX: float, positionY: float):\r\n        self.ID: uuid = uuid.uuid4()\r\n        self.rank: int = rank  # initial rank\r\n        self.positionX: float = positionX\r\n        self.positionY: float = positionY\r\n\r\n        self.env = env\r\n\r\n    #\r\n    def receive_message(self, message: DIO):\r\n        new_rank = message.get_rank() + 1\r\n        self.rank = new_rank\r\n\r\n    # when called upon\r\n    def receive_message_DAO(self, message: DAO):\r\n        self.isBusy = True\r\n\r\n    def send_message(self):\r\n        new_DIO = DIO(self.rank)\r\n        yield self.env.timeout(0.1)  # it takes 0.1 second to create a dio.\r\n        print(f'message sent out at: {self.env.now}')\r\n        #Network.send_to_neigbors(self.ID, new_DIO)\r\n\r\n    def get_ID(self) -> uuid:\r\n        return self.ID\r\n\r\n    def get_rank(self) -> int:\r\n        return self.rank\r\n\r\n    def set_rank(self, rank):\r\n        self.rank = rank\r\n\r\n    def get_X(self) -> float:\r\n        return self.positionX\r\n\r\n    def get_Y(self) -> float:\r\n        return self.positionY\r\n\r\n    def set_status(self, is_busy: bool):\r\n        self.isBusy = is_busy\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/Node.py b/Version2/Node.py
+--- a/Version2/Node.py	
++++ b/Version2/Node.py	
+@@ -1,5 +1,5 @@
+ import uuid
+-from Version2.messages import DIO, DAO
++from Version2.Messages import DIO, DAO
+ 
+ 
+ 
+@@ -24,7 +24,7 @@
+ 
+     def send_message(self):
+         new_DIO = DIO(self.rank)
+-        yield self.env.timeout(0.1)  # it takes 0.1 second to create a dio.
++        yield self.env.timeout(10)  # it takes 0.1 second to create a dio.
+         print(f'message sent out at: {self.env.now}')
+         #Network.send_to_neigbors(self.ID, new_DIO)
+ 
+Index: Version2/main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import simpy\r\nfrom Version2.network import Network\r\n\r\nprint(\"Dodag\")\r\n\r\n\r\ndef main():\r\n    NEW_MESSAGES = 5 # Total number of customers\r\n    INTERVAL_MESSAGES = 10  # Generate new customers roughly every x seconds\r\n    env = simpy.Environment()\r\n\r\n    env = simpy.Environment()\r\n    # initialize network with number of nodes placed on a grid:\r\n    network = Network(env, 110)\r\n    env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))\r\n    env.run()\r\n\r\nmain()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/main.py b/Version2/main.py
+--- a/Version2/main.py	
++++ b/Version2/main.py	
+@@ -1,5 +1,5 @@
+ import simpy
+-from Version2.network import Network
++from Version2.Network import Network
+ 
+ print("Dodag")
+ 
+@@ -12,7 +12,7 @@
+     env = simpy.Environment()
+     # initialize network with number of nodes placed on a grid:
+     network = Network(env, 110)
+-    env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))
++    env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))
+     env.run()
+ 
+ main()
+\ No newline at end of file
+Index: Version1/main2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import matplotlib.pyplot as plt\r\nfrom Version2.network import Network\r\n\r\n\r\nno_of_nodes: int = 110\r\nnetwork = Network(no_of_nodes)\r\nnodes = network.get_nodes()\r\nconnections = network.get_connections()\r\n# sends dio-messages to generate ranks\r\nnetwork.generate_ranks(root=nodes[55])\r\n\r\n\r\n# PLOT NODES AND CONNECTIONS\r\nfor i in nodes:\r\n    x = i.get_X()\r\n    y = i.get_Y()\r\n    plt.plot(x, y, 'ro')\r\n    plt.annotate(i.get_rank(), (x, y))\r\nfor i in connections:\r\n    from_x = i.get_node_from().get_X()\r\n    from_y = i.get_node_from().get_Y()\r\n    to_x = i.get_node_to().get_X()\r\n    to_y = i.get_node_to().get_Y()\r\n    plt.plot([from_x, to_x], [from_y, to_y], 'k')\r\nplt.show()\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version1/main2.py b/Version1/main2.py
+--- a/Version1/main2.py	
++++ b/Version1/main2.py	
+@@ -1,5 +1,5 @@
+ import matplotlib.pyplot as plt
+-from Version2.network import Network
++from Version2.Network import Network
+ 
+ 
+ no_of_nodes: int = 110
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.7\" project-jdk-type=\"Python SDK\" />\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	
++++ b/.idea/misc.xml	
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (IoT)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: Version2/main2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/main2.py b/Version2/main2.py
+new file mode 100644
+--- /dev/null	
++++ b/Version2/main2.py	
+@@ -0,0 +1,30 @@
++import matplotlib.pyplot as plt
++import simpy
++from Network import Network
++from Node import Node
++
++
++env = simpy.Environment()
++no_of_nodes: int = 110
++network = Network(env, no_of_nodes)
++nodes = network.get_nodes()
++connections = network.get_connections()
++
++node = simpy.Resource(env, capacity=1)
++env.process(Node.source(self=nodes[0], env=env, number=5, interval=10))
++env.run()
++
++
++# PLOT NODES AND CONNECTIONS
++# for i in nodes:
++#     x = i.get_X()
++#     y = i.get_Y()
++#     plt.plot(x, y, 'ro')
++#     plt.annotate(i.get_rank(), (x, y))
++# for i in connections:
++#     from_x = i.get_node_from().get_X()
++#     from_y = i.get_node_from().get_Y()
++#     to_x = i.get_node_to().get_X()
++#     to_y = i.get_node_to().get_Y()
++#     plt.plot([from_x, to_x], [from_y, to_y], 'k')
++# plt.show()
+Index: .idea/IoT.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<module type=\"PYTHON_MODULE\" version=\"4\">\r\n  <component name=\"NewModuleRootManager\">\r\n    <content url=\"file://$MODULE_DIR$\">\r\n      <excludeFolder url=\"file://$MODULE_DIR$/venv\" />\r\n    </content>\r\n    <orderEntry type=\"jdk\" jdkName=\"Python 3.7\" jdkType=\"Python SDK\" />\r\n    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\r\n  </component>\r\n  <component name=\"TestRunnerService\">\r\n    <option name=\"PROJECT_TEST_RUNNER\" value=\"Unittests\" />\r\n  </component>\r\n</module>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/IoT.iml b/.idea/IoT.iml
+--- a/.idea/IoT.iml	
++++ b/.idea/IoT.iml	
+@@ -4,7 +4,7 @@
+     <content url="file://$MODULE_DIR$">
+       <excludeFolder url="file://$MODULE_DIR$/venv" />
+     </content>
+-    <orderEntry type="jdk" jdkName="Python 3.7" jdkType="Python SDK" />
++    <orderEntry type="inheritedJdk" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="TestRunnerService">
+diff --git a/Version2/__init__.py b/Version2/__init__.py
+deleted file mode 100644

@@ -33,12 +33,16 @@ def main():
     plot_network(network.get_nodes(), network.get_connections())
 
 
-    env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))
+    env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))
     env.run()
 
     # plot network after
     plot_network(network.get_nodes(), network.get_connections())
 
+    # for connection in network.get_connections():
+    #     print("etx", connection.get_ETX())
+    #     print("succ", connection.successfulTransmissions)
+    #     print("failed", connection.failedTransmissions)
+
 
 main()
-

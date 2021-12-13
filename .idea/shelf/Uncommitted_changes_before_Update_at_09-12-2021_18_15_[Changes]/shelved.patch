@@ -1,0 +1,81 @@
+Index: Version2/network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/network.py b/Version2/Network.py
+rename from Version2/network.py
+rename to Version2/Network.py
+--- a/Version2/network.py	
++++ b/Version2/Network.py	
+@@ -1,8 +1,11 @@
+-from Version2.messages import DIO
++import math
++import uuid
++
++from Version2.Messages import DIO
+ from Version2.Node import Node
+ import numpy as np
+ import random
+-
++from Connection import Connection
+ 
+ 
+ class Network:
+@@ -12,11 +15,11 @@
+         self.env = env
+         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
+         self.neighbourRadius: float = 1.5
+-        # self.connections = self.__initialize_neighbours()
++        self.connections = self.__initialize_neighbours()
+ 
+-    def source(self, amountOfMessages, interval):
++    def source(self, numberOfMessages, interval):
+         """Source generates messages randomly"""
+-        for i in range(amountOfMessages):
++        for i in range(numberOfMessages):
+             print(f'message {i} was created at time: {self.env.now}')
+             # make a random node from the network send a random message.
+             node = random.choice(self.nodes)
+@@ -38,6 +41,41 @@
+             nodelist.append(node)
+         return nodelist
+ 
++    # Neighbour finding algorithm
++    def __initialize_neighbours(self) -> []:
++        connections = []
++        nodes = self.nodes
++        for i in nodes:
++            for j in nodes:
++                if i.get_ID() == j.get_ID():
++                    continue
++                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)
++                if dist <= self.neighbourRadius:
++                    connection = Connection(ETX=1, node_from=i, node_to=j)
++                    connections.append(connection)
++        return connections
++
++    def __find_nodes_with_rank(self, rank: int):
++        nodes_with_rank = []
++        for i in self.nodes:
++            if i.get_rank() == rank:
++                nodes_with_rank.append(i)
++        return nodes_with_rank
++
++    def __find_neighbours(self, node_id: uuid):
++        all_connections = self.connections
++        neighbours = []
++        for i in all_connections:
++            if i.get_node_from().get_ID() == node_id:
++                neighbours.append(i.nodeTo)
++        return neighbours
++
++    def __find_nodes_with_id(self, node_ID: uuid):
++        for node in self.get_nodes():
++            if node.get_ID() == node_ID:
++                return node
++        return
++
+     def get_nodes(self) -> list:
+         return self.nodes
+ 
