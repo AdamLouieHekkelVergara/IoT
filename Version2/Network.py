@@ -1,6 +1,7 @@
+import random
 import uuid
 
-from Version2.Messages import DIO
+from Version2.Messages import DIO, DAO
 from Version2.Node import Node
 from Version2.Connection import Connection
 import numpy as np
@@ -25,16 +26,18 @@ class Network:
                 with node.request() as req:
                     yield req
                     ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!
-                    self.env.process(self.send_message_dio(node, i))
+                    booleans: [] = [self.send_message_DIO(node, i), self.send_message_DAO(node, i)]
+                    send_message = random.choice(booleans)
+                    self.env.process(random.choice(send_message))
             t = interval  # TODO implement a trickle timer function instead of using t!
             yield self.env.timeout(t)  # wait time 't' before sending a new message.
 
-    def send_message_dio(self, node, message_number: int):
+    def send_message_DIO(self, node, message_number: int):
         ## Create new DIO message
-        print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')
-        dio = DIO(node.get_rank(), message_number)
+        print(f'At time {self.env.now}, DIO message {message_number} is being CREATED for node: {node.ID}')
+        message = DIO(node.get_rank(), message_number)
         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
-        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
+        print(f'At time {self.env.now}, DIO message {message_number} was CREATED for node: {node.ID}')
 
         for i in self.__find_neighbours(node.get_ID()):  # get all neighbors
             # request neighboring Node from the environment!
@@ -46,9 +49,9 @@ class Network:
 
                     # We now sent out, by calling the Nodes "receive_message method":
                     print(
-                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
+                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
                     # TODO: Calling the receive_message, should also change the rank!
-                    yield self.env.process(i.receive_message(dio))
+                    yield self.env.process(i.receive_message(message))
 
                 else:
                     # We  did not succesfully get a node before timeout! => reneged
@@ -57,8 +60,22 @@ class Network:
                         f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {i.get_ID()}')
 
     # TODO: Implement this method also:
-    def send_message_dao(self, node: Node, message_number_int):
-        pass
+    def send_message_dao(self, node: Node, message_number: int):
+        # Check for Node rank.
+        if node.get_rank() is None:
+            print(
+                f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
+            pass  # if Node doesnt have a rank, it does not know who to send to, as no parents are present.
+        else:
+            dao = DAO(node.get_rank(),message_number)
+            # determine who to sent to based on objective function in Connection:
+            node_to: Node = self.objective_function(node)
+            node_to.receive_message(dao)
+            pass
+
+    ## return the best node, based on some routing metrix.
+    def objective_function(self, node) -> Node:
+        neighbor_nodes: [] = self.__find_neighbours(node.get_ID())
 
     ## returns a list of nodes containing neighbors.
     def __find_neighbours(self, node_id: uuid) -> []:

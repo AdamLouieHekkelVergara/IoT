@@ -16,7 +16,7 @@ class Node(simpy.Resource):
         self.env = env
 
     #
-    def receive_message(self, message: DIO):
+    def receive_message(self, message):
         if isinstance(message, DIO):
             print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
             yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
@@ -38,9 +38,6 @@ class Node(simpy.Resource):
         elif isinstance(message, DAO):
             print("it is DAO")
 
-    # when called upon
-    def receive_message_DAO(self, message: DAO):
-        self.isBusy = True
 
     def get_ID(self) -> uuid:
         return self.ID

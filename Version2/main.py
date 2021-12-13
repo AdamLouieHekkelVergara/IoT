@@ -23,7 +23,7 @@ print("Dodag")
 
 def main():
     NEW_MESSAGES = 2 # Total number of customers
-    INTERVAL_MESSAGES = 10  # Generate new customers roughly every x milli-seconds
+    INTERVAL_MESSAGES = 10  # Generate messages roughly every x seconds
 
     env = simpy.Environment()
     # initialize network with number of nodes placed on a grid:
