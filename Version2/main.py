@@ -2,7 +2,7 @@ import simpy
 import matplotlib.pyplot as plt
 from Version2.Network import Network
 
-def plot_initial_network(nodes :[], connections: []):
+def plot_network(nodes :[], connections: []):
     # PLOT NODES AND CONNECTIONS
     for i in nodes:
         x = i.get_X()
@@ -30,12 +30,14 @@ def main():
     network = Network(env, 3)
 
     # plot the initial network!
-    plot_initial_network(network.get_nodes(), network.get_connections())
+    plot_network(network.get_nodes(), network.get_connections())
 
 
     env.process(network.source(NEW_MESSAGES,INTERVAL_MESSAGES))
     env.run()
 
+    # plot network after
+    plot_network(network.get_nodes(), network.get_connections())
 
 
 main()

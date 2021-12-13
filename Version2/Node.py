@@ -19,10 +19,21 @@ class Node(simpy.Resource):
     def receive_message(self, message: DIO):
         if isinstance(message, DIO):
             print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
-            # new_rank = message.get_rank() + 1
-            # self.rank = new_rank
             yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
-            print(f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
+
+            if message.get_rank() is None:
+                print(
+                    f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')
+                pass
+            else:  # The sender has a rank! Initially, we wait for root to send out rank 0.
+                if self.get_rank() is None or message.get_rank() < self.get_rank():  # is it a better rank??
+                    new_rank = message.get_rank() + 1
+                    self.rank = new_rank
+                    print(
+                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')
+                else:
+                    print(
+                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
         # TODO implement this.
         elif isinstance(message, DAO):
             print("it is DAO")

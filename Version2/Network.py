@@ -4,7 +4,6 @@ from Version2.Messages import DIO
 from Version2.Node import Node
 from Version2.Connection import Connection
 import numpy as np
-import random
 import math
 
 
@@ -27,7 +26,7 @@ class Network:
                     yield req
                     ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!
                     self.env.process(self.send_message_dio(node, i))
-            t = interval # TODO implement a trickle timer function instead of using t!
+            t = interval  # TODO implement a trickle timer function instead of using t!
             yield self.env.timeout(t)  # wait time 't' before sending a new message.
 
     def send_message_dio(self, node, message_number: int):
@@ -46,10 +45,10 @@ class Network:
                     # if this is not None => We got the node!!
 
                     # We now sent out, by calling the Nodes "receive_message method":
-                    print(f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
+                    print(
+                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
                     # TODO: Calling the receive_message, should also change the rank!
                     yield self.env.process(i.receive_message(dio))
-
 
                 else:
                     # We  did not succesfully get a node before timeout! => reneged
@@ -57,11 +56,9 @@ class Network:
                     print(
                         f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {i.get_ID()}')
 
-
     # TODO: Implement this method also:
     def send_message_dao(self, node: Node, message_number_int):
         pass
-
 
     ## returns a list of nodes containing neighbors.
     def __find_neighbours(self, node_id: uuid) -> []:
