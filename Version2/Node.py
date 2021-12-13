@@ -36,7 +36,7 @@ class Node(simpy.Resource):
                         f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
         # TODO implement this.
         elif isinstance(message, DAO):
-            print("it is DAO")
+            print(f'At time {self.env.now}, DAO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
 
 
     def get_ID(self) -> uuid:

@@ -26,9 +26,12 @@ class Network:
                 with node.request() as req:
                     yield req
                     ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!
-                    booleans: [] = [self.send_message_DIO(node, i), self.send_message_DAO(node, i)]
-                    send_message = random.choice(booleans)
-                    self.env.process(random.choice(send_message))
+                    booleans: [] = [True, False]
+                    boolean = random.choice(booleans)
+                    if boolean:
+                        self.env.process(self.send_message_DIO(node, i))
+                    else:
+                        self.env.process(self.send_message_DAO(node, i))
             t = interval  # TODO implement a trickle timer function instead of using t!
             yield self.env.timeout(t)  # wait time 't' before sending a new message.
 
@@ -51,10 +54,7 @@ class Network:
                     # We now sent out, by calling the Nodes "receive_message method":
                     print(
                         f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
-                    print(
-                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to '
-                        f'Node:   {neighbor.get_ID()}')
-                    # TODO: Calling the receive_message, should also change the rank!
+
                     yield self.env.process(neighbor.receive_message(message))
 
                 else:
@@ -65,22 +65,46 @@ class Network:
                         f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
 
     # TODO: Implement this method also:
-    def send_message_dao(self, node: Node, message_number: int):
+    def send_message_DAO(self, node: Node, message_number: int):
         # Check for Node rank.
+        print(f'At time {self.env.now}, DAO message {message_number} is being CREATED for node: {node.get_ID()}')
         if node.get_rank() is None:
             print(
-                f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
+                f'At time {self.env.now}, Node {node.get_ID()} has no parents to send DAO message of number {message_number} to.')
             pass  # if Node doesnt have a rank, it does not know who to send to, as no parents are present.
         else:
-            dao = DAO(node.get_rank(),message_number)
+            message = DAO(node.get_rank(), message_number)
+            yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a DAO.
+            print(f'At time {self.env.now}, DAO message {message_number} was CREATED for node: {node.get_ID()}')
             # determine who to sent to based on objective function in Connection:
-            node_to: Node = self.objective_function(node)
-            node_to.receive_message(dao)
-            pass
+            best_neighbor: Node = self.objective_function(node)
+            if best_neighbor is not None:
+                print(
+                    f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {best_neighbor.get_ID()}')
+                yield self.env.process(best_neighbor.receive_message(message))
+            else:
+                print(
+                    f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
+                pass
 
-    ## return the best node, based on some routing metrix.
+    # return the best node, based on some routing metrixs.
     def objective_function(self, node) -> Node:
         neighbor_nodes: [] = self.__find_neighbours(node.get_ID())
+        min_ETX = None  # of type 'float'
+        best_neighbor = None  # of type 'Node'
+        for neighbor in neighbor_nodes:
+            # first routing metrix
+            if neighbor.get_rank() is not None and node.get_rank() > neighbor.get_rank():  # does neighbor have smaller rank.
+                # second routing metrix.
+                neighbor_connection = self.__get_connection_between(node, neighbor)
+                if min_ETX is None or neighbor_connection.get_ETX() < min_ETX: # Match on ETX
+                    min_ETX = neighbor_connection.get_ETX()
+                    best_neighbor = neighbor
+                else:
+                    pass # neighbor connection has higher ETX and is not best neighbor.
+            else:
+                pass # neighbor has higher rank and is not parent.
+        return best_neighbor
 
     ## returns a list of nodes containing neighbors.
     def __find_neighbours(self, node_id: uuid) -> []:
