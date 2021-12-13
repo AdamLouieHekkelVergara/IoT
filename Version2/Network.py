@@ -39,25 +39,30 @@ class Network:
         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
         print(f'At time {self.env.now}, DIO message {message_number} was CREATED for node: {node.ID}')
 
-        for i in self.__find_neighbours(node.get_ID()):  # get all neighbors
+        for neighbor in self.__find_neighbours(node.get_ID()):  # get all neighbors
             # request neighboring Node from the environment!
-            with i.request() as req:
+            with neighbor.request() as req:
                 # Say: Get the node before we timeout!
                 results = yield req | self.env.timeout(3)  ## renege after timeout time.
                 if req in results:
                     # if this is not None => We got the node!!
+                    self.__get_connection_between(node, neighbor).successful_transmission()
 
                     # We now sent out, by calling the Nodes "receive_message method":
                     print(
-                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {i.get_ID()}')
+                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
+                    print(
+                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to '
+                        f'Node:   {neighbor.get_ID()}')
                     # TODO: Calling the receive_message, should also change the rank!
-                    yield self.env.process(i.receive_message(message))
+                    yield self.env.process(neighbor.receive_message(message))
 
                 else:
                     # We  did not succesfully get a node before timeout! => reneged
                     # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?
+                    self.__get_connection_between(node, neighbor).failed_transmission()
                     print(
-                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {i.get_ID()}')
+                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
 
     # TODO: Implement this method also:
     def send_message_dao(self, node: Node, message_number: int):
@@ -109,9 +114,27 @@ class Network:
                     continue
                 dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)
                 if dist <= self.neighbourRadius:
-                    connection = Connection(ETX=1, node_from=i, node_to=j)
+                    connection = Connection(node_from=i, node_to=j)
                     connections.append(connection)
         return connections
+
+    def __find_nodes_with_rank(self, rank: int):
+        nodes_with_rank = []
+        for i in self.nodes:
+            if i.get_rank() == rank:
+                nodes_with_rank.append(i)
+        return nodes_with_rank
+
+    def __find_nodes_with_id(self, node_ID: uuid):
+        for node in self.get_nodes():
+            if node.get_ID() == node_ID:
+                return node
+        return
+
+    def __get_connection_between(self, node1: Node, node2: Node) -> Connection:
+        for connection in self.connections:
+            if connection.get_node_from().get_ID() == node1.get_ID() and connection.get_node_to().get_ID() == node2.get_ID():
+                return connection
 
     def get_nodes(self) -> list:
         return self.nodes

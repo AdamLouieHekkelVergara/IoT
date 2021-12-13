@@ -1,0 +1,69 @@
+Index: main2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import matplotlib.pyplot as plt\r\nfrom Network import Network\r\n\r\nno_of_nodes = 110\r\nnetwork = Network(no_of_nodes)\r\nnodes = network.get_nodes()\r\nconnections = network.get_connections()\r\nnetwork.generate_ranks(root=nodes[55])\r\n\r\n\r\n# PLOT NODES AND CONNECTIONS\r\nfor i in nodes:\r\n    x = i.get_X()\r\n    y = i.get_Y()\r\n    plt.plot(x, y, 'ro')\r\n    plt.annotate(i.get_rank(), (x, y))\r\nfor i in connections:\r\n    from_x = i.get_node_from().get_X()\r\n    from_y = i.get_node_from().get_Y()\r\n    to_x = i.get_node_to().get_X()\r\n    to_y = i.get_node_to().get_Y()\r\n    plt.plot([from_x, to_x], [from_y, to_y], 'k')\r\nplt.show()\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main2.py b/main2.py
+--- a/main2.py	(revision 459f6152533ca6e64f43c8c7e49d46ae3b23a108)
++++ b/main2.py	(date 1639058736048)
+@@ -5,7 +5,6 @@
+ network = Network(no_of_nodes)
+ nodes = network.get_nodes()
+ connections = network.get_connections()
+-network.generate_ranks(root=nodes[55])
+ 
+ 
+ # PLOT NODES AND CONNECTIONS
+@@ -20,5 +19,6 @@
+     to_x = i.get_node_to().get_X()
+     to_y = i.get_node_to().get_Y()
+     plt.plot([from_x, to_x], [from_y, to_y], 'k')
++plt.xticks([])
++plt.yticks([])
+ plt.show()
+-
+Index: Network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import math\r\nimport uuid\r\n\r\nfrom Connection import Connection\r\nfrom Node import Node\r\nfrom Messages import DIO, DAO\r\nimport random\r\nimport numpy as np\r\n\r\n\r\nclass Network:\r\n    # constructor\r\n    def __init__(self, no_of_nodes: int):\r\n        self.noOfNodes: int = no_of_nodes\r\n        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)\r\n        self.neighbourRadius: float = 1.5\r\n        self.connections = self.__initialize_neighbours()\r\n\r\n    # assign each node a random position and rank in the network\r\n    # ToDO: make the rank not random.\r\n    def __define_nodes_in_network(self, no_of_nodes) -> []:\r\n        nodelist = []\r\n        for i in range(no_of_nodes):\r\n            x = round(np.random.uniform(0, 10), 1)\r\n            y = round(i / (no_of_nodes / 10))\r\n            rank = 0\r\n            node = Node(rank, x, y)\r\n            nodelist.append(node)\r\n        return nodelist\r\n\r\n    # Neighbour finding algorithm\r\n    def __initialize_neighbours(self) -> []:\r\n        connections = []\r\n        nodes = self.nodes\r\n        for i in nodes:\r\n            for j in nodes:\r\n                if i.get_ID() == j.get_ID():\r\n                    continue\r\n                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)\r\n                if dist <= self.neighbourRadius:\r\n                    connection = Connection(ETX=1, node_from=i, node_to=j)\r\n                    connections.append(connection)\r\n        return connections\r\n\r\n    def generate_ranks(self, root: Node):\r\n        current_rank: int = 0\r\n        nodes_with_current_rank = [root]\r\n        while len(nodes_with_current_rank) > 0:\r\n            for i in nodes_with_current_rank:\r\n                dio = DIO(DAGRank=i.get_rank())\r\n                neighbours = self.__find_neighbours(i.get_ID())\r\n                for j in neighbours:\r\n                    if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO\r\n                        j.receive_message(dio)\r\n            current_rank += 1\r\n            nodes_with_current_rank = self.__find_nodes_with_rank(current_rank)\r\n        root.set_rank(0)\r\n\r\n    def __find_nodes_with_rank(self, rank: int):\r\n        nodes_with_rank = []\r\n        for i in self.nodes:\r\n            if i.get_rank() == rank:\r\n                nodes_with_rank.append(i)\r\n        return nodes_with_rank\r\n\r\n    def __find_neighbours(self, node_id: uuid):\r\n        all_connections = self.connections\r\n        neighbours = []\r\n        for i in all_connections:\r\n            if i.get_node_from().get_ID() == node_id:\r\n                neighbours.append(i.nodeTo)\r\n        return neighbours\r\n\r\n        # Send_DAO creates a DAO message with a DAO rank and an instanceID\r\n        # send_DAO can only send DAO messages upwards or to the sides.\r\n        # if a DAO message had been received from the sides (neighbor) it can only send upwards.\r\n        # Sends to the parent (lower rank) with the lowest ETX.\r\n        # When a 'send' has been successful, it receives a DAO_ACK (true if successful false otherwise)\r\n        # TODO: create \"findBestParent\" algorithm based on multiple factors (better objective function).\r\n\r\n    def send_DAO(self, dao: DAO):\r\n        # is the node the\r\n        rank_from = dao.get_rank() # rank of the from node.\r\n        this_node = None\r\n        for node in self.get_nodes():\r\n            if node.get_ID() == dao.get_node_ID():\r\n                this_node = node\r\n\r\n        dao_new = DAO(this_node.get_rank(), this_node.get_ID())\r\n\r\n        print(\"node: \", this_node.get_ID())\r\n        # determine who to send to!\r\n        neighbors_ETX = []\r\n        neighbor_connections = []\r\n        for i in self.connections:\r\n            if i.nodeFrom.get_ID() == this_node.get_ID() and i.nodeTo.get_rank() < rank_from:\r\n                neighbors_ETX.append(i.get_ETX())\r\n                neighbor_connections.append(i)\r\n                print(f\"we have a neighbor! with rank going from => {rank_from} to {i.nodeTo.get_rank()}\")\r\n\r\n        # is the sender node a neighbor (= equal rank) send to parent only\r\n        # is the sender a child ( higher rank) send to parent OR neighbor\r\n        for connection in neighbor_connections:\r\n            if connection.get_ETX() == min(neighbors_ETX):\r\n                connection.nodeTo.receive_message_DAO(dao_new)\r\n                return connection.nodeTo\r\n        return\r\n\r\n    def get_nodes(self) -> list:\r\n        return self.nodes\r\n\r\n    def get_nr_of_nodes(self) -> int:\r\n        return self.noOfNodes\r\n\r\n    def get_connections(self) -> list:\r\n        return self.connections\r\n\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Network.py b/Network.py
+--- a/Network.py	(revision 459f6152533ca6e64f43c8c7e49d46ae3b23a108)
++++ b/Network.py	(date 1638185583610)
+@@ -49,21 +49,21 @@
+             for i in nodes_with_current_rank:
+                 dio = DIO(DAGRank=i.get_rank())
+                 neighbours = self.__find_neighbours(i.get_ID())
+-                for j in neighbours:
+-                    if j.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
+-                        j.receive_message(dio)
++                for neighbour in neighbours:
++                    if neighbour.get_rank() == 0:   # Only send DIO if receiver have not yet received a DIO
++                        neighbour.receive_message(dio)
+             current_rank += 1
+             nodes_with_current_rank = self.__find_nodes_with_rank(current_rank)
+         root.set_rank(0)
+ 
+-    def __find_nodes_with_rank(self, rank: int):
++    def __find_nodes_with_rank(self, rank: int) -> []:
+         nodes_with_rank = []
+         for i in self.nodes:
+             if i.get_rank() == rank:
+                 nodes_with_rank.append(i)
+         return nodes_with_rank
+ 
+-    def __find_neighbours(self, node_id: uuid):
++    def __find_neighbours(self, node_id: uuid) -> []:
+         all_connections = self.connections
+         neighbours = []
+         for i in all_connections:
+@@ -114,5 +114,3 @@
+ 
+     def get_connections(self) -> list:
+         return self.connections
+-
+-

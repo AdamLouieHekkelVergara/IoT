@@ -1,0 +1,123 @@
+Index: Version2.0/Node.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\nfrom Messages import DIO, DAO\r\nimport simpy\r\n\r\n\r\nclass Node(simpy.Resource):\r\n    # constructor\r\n    def __init__(self, rank: int, positionX: float, positionY: float, env, max_capacity: int):\r\n        super().__init__(env, max_capacity)\r\n        self.ID: uuid = uuid.uuid4()\r\n        self.rank: int = rank  # initial rank\r\n        self.positionX: float = positionX\r\n        self.positionY: float = positionY\r\n        self.isBusy: bool = False\r\n\r\n    #\r\n    def receive_message(self, message: DIO):\r\n        self.isBusy = True\r\n        new_rank = message.get_rank() + 1\r\n        self.rank = new_rank\r\n        # time_delay = np.random.uniform(0, 5/1000)\r\n        # time.sleep(time_delay)\r\n        self.isBusy = False\r\n\r\n    # when called upon\r\n    def receive_message_DAO(self, message: DAO):\r\n        self.isBusy = True\r\n\r\n\r\n    def get_ID(self) -> uuid:\r\n        return self.ID\r\n\r\n    def get_rank(self) -> int:\r\n        return self.rank\r\n\r\n    def set_rank(self, rank):\r\n        self.rank = rank\r\n\r\n    def get_X(self) -> float:\r\n        return self.positionX\r\n\r\n    def get_Y(self) -> float:\r\n        return self.positionY\r\n\r\n    def set_status(self, is_busy: bool):\r\n        self.isBusy = is_busy\r\n
+===================================================================
+diff --git a/Version2.0/Node.py b/Version2.0/Node.py
+--- a/Version2.0/Node.py	
++++ b/Version2.0/Node.py	
+@@ -1,4 +1,5 @@
+ import uuid
++import random
+ from Messages import DIO, DAO
+ import simpy
+ 
+@@ -13,19 +14,24 @@
+         self.positionY: float = positionY
+         self.isBusy: bool = False
+ 
+-    #
+-    def receive_message(self, message: DIO):
+-        self.isBusy = True
+-        new_rank = message.get_rank() + 1
+-        self.rank = new_rank
+-        # time_delay = np.random.uniform(0, 5/1000)
+-        # time.sleep(time_delay)
+-        self.isBusy = False
++    def source(self, env, number, interval):
++        """Source generates DIOs randomly"""
++        for i in range(number):
++            dio = self.send_dio(env=env, name='DIO%02d' % i, node=self)
++            env.process(dio)
++            t = random.expovariate(1.0 / interval)
++            yield env.timeout(t)
+ 
+-    # when called upon
+-    def receive_message_DAO(self, message: DAO):
+-        self.isBusy = True
++    def send_dio(self, env, name, node):
++        """Customer arrives, is served and leaves."""
++        arrive = env.now
++        print('%7.4f %s: Here I am' % (arrive, name))
++        with node.request() as req:
++            results = yield req
++            print('%7.4f %s: Finished' % (env.now, name))
+ 
++    def receive_dio(self):
++        return
+ 
+     def get_ID(self) -> uuid:
+         return self.ID
+Index: Version2.0/Network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import math\r\nfrom Connection import Connection\r\nfrom Node import Node\r\nfrom Messages import DIO, DAO\r\nimport numpy as np\r\nimport uuid\r\n\r\n\r\nclass Network():\r\n    # constructor\r\n    def __init__(self, env, no_of_nodes: int):\r\n        self.noOfNodes: int = no_of_nodes\r\n        self.env = env\r\n        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)\r\n        self.neighbourRadius: float = 1.5\r\n        self.connections = self.__initialize_neighbours()\r\n\r\n\r\n    def get_nodes(self) -> list:\r\n        return self.nodes\r\n\r\n    def get_nr_of_nodes(self) -> int:\r\n        return self.noOfNodes\r\n\r\n    def get_connections(self) -> list:\r\n        return self.connections\r\n\r\n    def get_env(self):\r\n        return self.env\r\n\r\n
+===================================================================
+diff --git a/Version2.0/Network.py b/Version2.0/Network.py
+--- a/Version2.0/Network.py	
++++ b/Version2.0/Network.py	
+@@ -6,7 +6,7 @@
+ import uuid
+ 
+ 
+-class Network():
++class Network:
+     # constructor
+     def __init__(self, env, no_of_nodes: int):
+         self.noOfNodes: int = no_of_nodes
+@@ -15,6 +15,50 @@
+         self.neighbourRadius: float = 1.5
+         self.connections = self.__initialize_neighbours()
+ 
++    def __define_nodes_in_network(self, no_of_nodes) -> []:
++        nodelist = []
++        for i in range(no_of_nodes):
++            x = round(np.random.uniform(0, 10), 1)
++            y = round(i / (no_of_nodes / 10))
++            rank = 0
++            node = Node(rank, x, y, self.get_env(), 1)
++            nodelist.append(node)
++        return nodelist
++
++    # Neighbour finding algorithm
++    def __initialize_neighbours(self) -> []:
++        connections = []
++        nodes = self.nodes
++        for i in nodes:
++            for j in nodes:
++                if i.get_ID() == j.get_ID():
++                    continue
++                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)
++                if dist <= self.neighbourRadius:
++                    connection = Connection(ETX=1, node_from=i, node_to=j)
++                    connections.append(connection)
++        return connections
++
++    def __find_nodes_with_rank(self, rank: int):
++        nodes_with_rank = []
++        for i in self.nodes:
++            if i.get_rank() == rank:
++                nodes_with_rank.append(i)
++        return nodes_with_rank
++
++    def __find_neighbours(self, node_id: uuid):
++        all_connections = self.connections
++        neighbours = []
++        for i in all_connections:
++            if i.get_node_from().get_ID() == node_id:
++                neighbours.append(i.nodeTo)
++        return neighbours
++
++    def __find_nodes_with_id(self, node_ID: uuid):
++        for node in self.get_nodes():
++            if node.get_ID() == node_ID:
++                return node
++        return
+ 
+     def get_nodes(self) -> list:
+         return self.nodes
+@@ -27,4 +71,3 @@
+ 
+     def get_env(self):
+         return self.env
+-
