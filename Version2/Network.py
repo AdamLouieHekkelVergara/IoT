@@ -10,11 +10,11 @@ import math
 
 class Network:
     # constructor
-    def __init__(self, env, no_of_nodes: int):
+    def __init__(self, env, no_of_nodes: int, neighbor_radius: float):
         self.noOfNodes: int = no_of_nodes
         self.env = env
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
-        self.neighbourRadius: float = 15  # 1.5
+        self.neighbourRadius: float = neighbor_radius
         self.connections = self.__initialize_neighbours()
 
     def source(self, amountOfMessages, interval):
@@ -25,7 +25,7 @@ class Network:
                 # Request the node : wait for the node to become available
                 with node.request() as req:
                     yield req
-                    ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!
+                    # TODO implement DAO-messages own frequency interval. ONLY DIO uses trickle timer.
                     booleans: [] = [True, False]
                     boolean = random.choice(booleans)
                     if boolean:
@@ -105,6 +105,18 @@ class Network:
             else:
                 pass # neighbor has higher rank and is not parent.
         return best_neighbor
+
+    # this algorithm defines the trickle timer. It has three parameters:
+    # 1. the minimum interval size Imin,
+    # 2. the maximum interval size Imax,
+    # 3. and a redundancy constant k
+
+    def trickle_algorithm(self, Imin, Imax, k):
+        Interval_size: float # current intervalsize
+        time: float # time within the current interval
+        pass
+
+    ### HELPER METHODS
 
     ## returns a list of nodes containing neighbors.
     def __find_neighbours(self, node_id: uuid) -> []:

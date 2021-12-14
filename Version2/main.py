@@ -22,12 +22,18 @@ print("Dodag")
 
 
 def main():
-    NEW_MESSAGES = 2 # Total number of customers
+    NEW_MESSAGES = 5  # Total number of messages generated pr Node
     INTERVAL_MESSAGES = 10  # Generate messages roughly every x seconds
+    MESSAGE_CREATE_TIME = 10  # time it takes a message to be created
+    MESSAGE_PROCESS_TIME = 10  # time it takes a message to be processed.
+
+    NUMBER_OF_NODES = 7 # amount of nodes in the network.
+    NEIGHBOR_RADIUS = 7.5  # the range a node can see.
+
 
     env = simpy.Environment()
     # initialize network with number of nodes placed on a grid:
-    network = Network(env, 3)
+    network = Network(env, no_of_nodes= NUMBER_OF_NODES, neighbor_radius= NEIGHBOR_RADIUS)
 
     # plot the initial network!
     plot_network(network.get_nodes(), network.get_connections())
