@@ -1,0 +1,188 @@
+Index: Version2/Node.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\nfrom Version2.Messages import DIO, DAO\r\nimport random\r\nimport numpy as np\r\nimport simpy\r\n\r\n\r\nclass Node(simpy.Resource):\r\n    # constructor\r\n    def __init__(self, env, max_capacity, rank: int, positionX: float, positionY: float):\r\n        super().__init__(env, max_capacity)\r\n        self.ID: uuid = uuid.uuid4()\r\n        self.rank: int = rank  # initial rank\r\n        self.positionX: float = positionX\r\n        self.positionY: float = positionY\r\n        self.env = env\r\n\r\n    #\r\n    def receive_message(self, message: DIO):\r\n        if isinstance(message, DIO):\r\n            print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')\r\n            yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message\r\n\r\n            if message.get_rank() is None:\r\n                print(\r\n                    f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')\r\n                pass\r\n            else:  # The sender has a rank! Initially, we wait for root to send out rank 0.\r\n                if self.get_rank() is None or message.get_rank() < self.get_rank():  # is it a better rank??\r\n                    new_rank = message.get_rank() + 1\r\n                    self.rank = new_rank\r\n                    print(\r\n                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')\r\n                else:\r\n                    print(\r\n                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')\r\n        # TODO implement this.\r\n        elif isinstance(message, DAO):\r\n            print(\"it is DAO\")\r\n\r\n    # when called upon\r\n    def receive_message_DAO(self, message: DAO):\r\n        self.isBusy = True\r\n\r\n    def get_ID(self) -> uuid:\r\n        return self.ID\r\n\r\n    def get_rank(self) -> int:\r\n        return self.rank\r\n\r\n    def set_rank(self, rank):\r\n        self.rank = rank\r\n\r\n    def get_X(self) -> float:\r\n        return self.positionX\r\n\r\n    def get_Y(self) -> float:\r\n        return self.positionY\r\n\r\n    def set_status(self, is_busy: bool):\r\n        self.isBusy = is_busy\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/Node.py b/Version2/Node.py
+--- a/Version2/Node.py	(revision 027803889c97bb36e4d49406c4d91a383cb6d5a3)
++++ b/Version2/Node.py	(date 1639413045004)
+@@ -14,26 +14,30 @@
+         self.positionX: float = positionX
+         self.positionY: float = positionY
+         self.env = env
++        self.batteryPower: int = 30
+ 
+     #
+     def receive_message(self, message: DIO):
+         if isinstance(message, DIO):
+-            print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
+-            yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
++            # print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
++            processing_time = np.random.randint(3, 10)
++            self.batteryPower -= processing_time
++            yield self.env.timeout(processing_time)  # it takes 500 milliseconds to process/receive a message
+ 
+             if message.get_rank() is None:
+-                print(
+-                    f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')
++                # print(
++                #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')
+                 pass
+             else:  # The sender has a rank! Initially, we wait for root to send out rank 0.
+                 if self.get_rank() is None or message.get_rank() < self.get_rank():  # is it a better rank??
+                     new_rank = message.get_rank() + 1
+                     self.rank = new_rank
+-                    print(
+-                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')
++                    # print(
++                    #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')
+                 else:
+-                    print(
+-                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
++                    # print(
++                    #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
++                    pass
+         # TODO implement this.
+         elif isinstance(message, DAO):
+             print("it is DAO")
+@@ -59,3 +63,6 @@
+ 
+     def set_status(self, is_busy: bool):
+         self.isBusy = is_busy
++
++    def get_battery_power(self) -> int:
++        return self.batteryPower
+Index: Version2/Network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\n\r\nfrom Version2.Messages import DIO\r\nfrom Version2.Node import Node\r\nfrom Version2.Connection import Connection\r\nimport numpy as np\r\nimport math\r\n\r\n\r\nclass Network:\r\n    # constructor\r\n    def __init__(self, env, no_of_nodes: int):\r\n        self.noOfNodes: int = no_of_nodes\r\n        self.env = env\r\n        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)\r\n        self.neighbourRadius: float = 15  # 1.5\r\n        self.connections = self.__initialize_neighbours()\r\n\r\n    def source(self, amountOfMessages, interval):\r\n        \"\"\"Source generates messages randomly\"\"\"\r\n        for i in range(amountOfMessages):\r\n            # make a random node from the network send a random message.\r\n            for node in self.nodes:\r\n                # Request the node : wait for the node to become available\r\n                with node.request() as req:\r\n                    yield req\r\n                    ## TODO (maybe randomly) shift between call 'send_message_dio' and 'send_message_dao'!\r\n                    self.env.process(self.send_message_dio(node, i))\r\n            t = interval  # TODO implement a trickle timer function instead of using t!\r\n            yield self.env.timeout(t)  # wait time 't' before sending a new message.\r\n\r\n    def send_message_dio(self, node, message_number: int):\r\n        ## Create new DIO message\r\n        print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')\r\n        dio = DIO(node.get_rank(), message_number)\r\n        yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.\r\n        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')\r\n\r\n        for neighbor in self.__find_neighbours(node.get_ID()):  # get all neighbors\r\n            # request neighboring Node from the environment!\r\n            with neighbor.request() as req:\r\n                # Say: Get the node before we timeout!\r\n                results = yield req | self.env.timeout(3)  ## renege after timeout time.\r\n                if req in results:\r\n                    # if this is not None => We got the node!!\r\n                    self.__get_connection_between(node, neighbor).successful_transmission()\r\n\r\n                    # We now sent out, by calling the Nodes \"receive_message method\":\r\n                    print(\r\n                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')\r\n                    print(\r\n                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to '\r\n                        f'Node:   {neighbor.get_ID()}')\r\n                    # TODO: Calling the receive_message, should also change the rank!\r\n                    yield self.env.process(neighbor.receive_message(dio))\r\n\r\n                else:\r\n                    # We  did not succesfully get a node before timeout! => reneged\r\n                    # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?\r\n                    self.__get_connection_between(node, neighbor).failed_transmission()\r\n                    print(\r\n                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')\r\n\r\n    # TODO: Implement this method also:\r\n    def send_message_dao(self, node: Node, message_number_int):\r\n        pass\r\n\r\n    ## returns a list of nodes containing neighbors.\r\n    def __find_neighbours(self, node_id: uuid) -> []:\r\n        all_connections = self.connections\r\n        neighbours = []\r\n        for i in all_connections:\r\n            if i.get_node_from().get_ID() == node_id:\r\n                neighbours.append(i.nodeTo)\r\n        return neighbours\r\n\r\n    # assign each node a random position and rank in the network\r\n    def __define_nodes_in_network(self, no_of_nodes) -> []:\r\n        nodelist = []\r\n        for i in range(no_of_nodes):\r\n            x = round(np.random.uniform(0, 10), 1)\r\n            y = round(i / (no_of_nodes / 10))\r\n            rank = None\r\n            max_capacity = 1\r\n            node = Node(self.env, max_capacity, rank, x, y)\r\n            nodelist.append(node)\r\n        nodelist[0].set_rank(0)  # define node 0 to be root\r\n        return nodelist\r\n\r\n    # Neighbour finding algorithm\r\n    def __initialize_neighbours(self) -> []:\r\n        connections = []\r\n        nodes = self.nodes\r\n        for i in nodes:\r\n            for j in nodes:\r\n                if i.get_ID() == j.get_ID():\r\n                    continue\r\n                dist = math.sqrt((i.get_X() - j.get_X()) ** 2 + (i.get_Y() - j.get_Y()) ** 2)\r\n                if dist <= self.neighbourRadius:\r\n                    connection = Connection(node_from=i, node_to=j)\r\n                    connections.append(connection)\r\n        return connections\r\n\r\n    def __find_nodes_with_rank(self, rank: int):\r\n        nodes_with_rank = []\r\n        for i in self.nodes:\r\n            if i.get_rank() == rank:\r\n                nodes_with_rank.append(i)\r\n        return nodes_with_rank\r\n\r\n    def __find_nodes_with_id(self, node_ID: uuid):\r\n        for node in self.get_nodes():\r\n            if node.get_ID() == node_ID:\r\n                return node\r\n        return\r\n\r\n    def __get_connection_between(self, node1: Node, node2: Node) -> Connection:\r\n        for connection in self.connections:\r\n            if connection.get_node_from().get_ID() == node1.get_ID() and connection.get_node_to().get_ID() == node2.get_ID():\r\n                return connection\r\n\r\n    def get_nodes(self) -> list:\r\n        return self.nodes\r\n\r\n    def get_nr_of_nodes(self) -> int:\r\n        return self.noOfNodes\r\n\r\n    def get_connections(self) -> list:\r\n        return self.connections\r\n\r\n    def get_env(self):\r\n        return self.env\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/Network.py b/Version2/Network.py
+--- a/Version2/Network.py	(revision 027803889c97bb36e4d49406c4d91a383cb6d5a3)
++++ b/Version2/Network.py	(date 1639416335311)
+@@ -31,10 +31,10 @@
+ 
+     def send_message_dio(self, node, message_number: int):
+         ## Create new DIO message
+-        print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')
++        # print(f'At time {self.env.now}, message {message_number} is being CREATED for node: {node.ID}')
+         dio = DIO(node.get_rank(), message_number)
+         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
+-        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
++        # print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
+ 
+         for neighbor in self.__find_neighbours(node.get_ID()):  # get all neighbors
+             # request neighboring Node from the environment!
+@@ -46,26 +46,34 @@
+                     self.__get_connection_between(node, neighbor).successful_transmission()
+ 
+                     # We now sent out, by calling the Nodes "receive_message method":
+-                    print(
+-                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
+-                    print(
+-                        f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to '
+-                        f'Node:   {neighbor.get_ID()}')
+-                    # TODO: Calling the receive_message, should also change the rank!
++                    # print(
++                    #     f'At time {self.env.now}, message {message_number} was SENT OUT for node: {node.get_ID()} to '
++                    #     f'Node:   {neighbor.get_ID()}')
+                     yield self.env.process(neighbor.receive_message(dio))
+ 
++                    # Remove node from DODAG if it has no battery power left
++                    if neighbor.get_battery_power() <= 0:
++                        print(neighbor.get_battery_power())
++                        print("no of connections:", len(self.connections))
++                        for connection in self.connections:
++                            print(connection.get_node_from().get_ID())
++                        print("Neighbour:", neighbor.get_ID())
++                        #self.__remove_node_from_network(neighbor)
++                        print("no of connections:", len(self.connections))
++                        for connection in self.connections:
++                            print(connection.get_node_from().get_ID())
++
+                 else:
+                     # We  did not succesfully get a node before timeout! => reneged
+-                    # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?
+                     self.__get_connection_between(node, neighbor).failed_transmission()
+-                    print(
+-                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
++                    # print(
++                    #    f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
+ 
+     # TODO: Implement this method also:
+     def send_message_dao(self, node: Node, message_number_int):
+         pass
+ 
+-    ## returns a list of nodes containing neighbors.
++    # returns a list of nodes containing neighbors.
+     def __find_neighbours(self, node_id: uuid) -> []:
+         all_connections = self.connections
+         neighbours = []
+@@ -119,6 +127,14 @@
+             if connection.get_node_from().get_ID() == node1.get_ID() and connection.get_node_to().get_ID() == node2.get_ID():
+                 return connection
+ 
++    def remove_node_from_network(self, node):
++        print("Removed connections")
++        for connection in self.connections:
++            if (connection.get_node_from().get_ID() is node.get_ID()) or (connection.get_node_to().get_ID() is node.get_ID()):
++                print("to", connection.get_node_to().get_ID())
++                print("from", connection.get_node_from().get_ID())
++                self.connections.remove(connection)
++
+     def get_nodes(self) -> list:
+         return self.nodes
+ 
+Index: Version2/main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import simpy\r\nimport matplotlib.pyplot as plt\r\nfrom Version2.Network import Network\r\n\r\ndef plot_network(nodes :[], connections: []):\r\n    # PLOT NODES AND CONNECTIONS\r\n    for i in nodes:\r\n        x = i.get_X()\r\n        y = i.get_Y()\r\n        plt.plot(x, y, 'ro')\r\n        plt.annotate(i.get_rank(), (x, y))\r\n    for i in connections:\r\n        from_x = i.get_node_from().get_X()\r\n        from_y = i.get_node_from().get_Y()\r\n        to_x = i.get_node_to().get_X()\r\n        to_y = i.get_node_to().get_Y()\r\n        plt.plot([from_x, to_x], [from_y, to_y], 'k')\r\n    plt.show()\r\n\r\n\r\nprint(\"Dodag\")\r\n\r\n\r\ndef main():\r\n    NEW_MESSAGES = 2 # Total number of customers\r\n    INTERVAL_MESSAGES = 10  # Generate new customers roughly every x milli-seconds\r\n\r\n    env = simpy.Environment()\r\n    # initialize network with number of nodes placed on a grid:\r\n    network = Network(env, 3)\r\n\r\n    # plot the initial network!\r\n    plot_network(network.get_nodes(), network.get_connections())\r\n\r\n\r\n    env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))\r\n    env.run()\r\n\r\n    # plot network after\r\n    plot_network(network.get_nodes(), network.get_connections())\r\n\r\n    # for connection in network.get_connections():\r\n    #     print(\"etx\", connection.get_ETX())\r\n    #     print(\"succ\", connection.successfulTransmissions)\r\n    #     print(\"failed\", connection.failedTransmissions)\r\n\r\n\r\nmain()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Version2/main.py b/Version2/main.py
+--- a/Version2/main.py	(revision 027803889c97bb36e4d49406c4d91a383cb6d5a3)
++++ b/Version2/main.py	(date 1639416360261)
+@@ -22,7 +22,7 @@
+ 
+ 
+ def main():
+-    NEW_MESSAGES = 2 # Total number of customers
++    NEW_MESSAGES = 40 # Total number of customers
+     INTERVAL_MESSAGES = 10  # Generate new customers roughly every x milli-seconds
+ 
+     env = simpy.Environment()
+@@ -34,15 +34,22 @@
+ 
+ 
+     env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))
+-    env.run()
++    #env.run()
++
++    print("All connections:")
++    for connec in network.get_connections():
++        print("to", connec.get_node_to().get_ID())
++        print("from", connec.get_node_from().get_ID())
++    network.remove_node_from_network(network.get_nodes()[0])
++    print("remove", network.get_nodes()[0].get_ID())
++    print("Connections after remove:")
++    for connec in network.get_connections():
++        print("to", connec.get_node_to().get_ID())
++        print("from", connec.get_node_from().get_ID())
+ 
+     # plot network after
+     plot_network(network.get_nodes(), network.get_connections())
+-
+-    # for connection in network.get_connections():
+-    #     print("etx", connection.get_ETX())
+-    #     print("succ", connection.successfulTransmissions)
+-    #     print("failed", connection.failedTransmissions)
++    print(len(network.get_connections()))
+ 
+ 
+ main()
+\ No newline at end of file

@@ -16,6 +16,8 @@ class Network:
         self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
         self.neighbourRadius: float = neighbor_radius
         self.connections = self.__initialize_neighbours()
+        self.removedNodes: [] = []
+        self.removedConnections: [] = []
 
     def source(self, amountOfMessages, interval):
         """Source generates messages randomly"""
@@ -40,9 +42,16 @@ class Network:
         print(f'At time {self.env.now}, DIO message {message_number} is being CREATED for node: {node.ID}')
         message = DIO(node.get_rank(), message_number)
         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
-        print(f'At time {self.env.now}, DIO message {message_number} was CREATED for node: {node.ID}')
+        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
 
-        for neighbor in self.__find_neighbours(node.get_ID()):  # get all neighbors
+        neighbors = self.__find_neighbours(node.get_ID()).copy()
+        for neighbor in neighbors:  # get all neighbors
+
+            # Remove node from DODAG if it has no battery power left
+            if neighbor.get_battery_power() <= 0:
+                self.remove_node_from_network(neighbor)
+                continue
+
             # request neighboring Node from the environment!
             with neighbor.request() as req:
                 # Say: Get the node before we timeout!
@@ -122,9 +131,9 @@ class Network:
     def __find_neighbours(self, node_id: uuid) -> []:
         all_connections = self.connections
         neighbours = []
-        for i in all_connections:
-            if i.get_node_from().get_ID() == node_id:
-                neighbours.append(i.nodeTo)
+        for connection in all_connections:
+            if connection.get_node_from().get_ID() == node_id:
+                neighbours.append(connection.get_node_to())
         return neighbours
 
     # assign each node a random position and rank in the network
@@ -169,8 +178,20 @@ class Network:
 
     def __get_connection_between(self, node1: Node, node2: Node) -> Connection:
         for connection in self.connections:
-            if connection.get_node_from().get_ID() == node1.get_ID() and connection.get_node_to().get_ID() == node2.get_ID():
+            node1IsFrom = connection.get_node_from().get_ID() == node1.get_ID()
+            node1IsTo = connection.get_node_to().get_ID() == node1.get_ID()
+            node2IsFrom = connection.get_node_from().get_ID() == node2.get_ID()
+            node2IsTo = connection.get_node_to().get_ID() == node2.get_ID()
+            if node1IsFrom and node2IsTo:
                 return connection
+            elif node2IsFrom and node1IsTo:
+                return connection
+
+    def remove_node_from_network(self, node):
+        for connection in self.connections:
+            if (connection.get_node_from().get_ID() is node.get_ID()) or (connection.get_node_to().get_ID() is node.get_ID()):
+                self.removedConnections.append(connection) if connection not in self.removedConnections else self.removedConnections
+        self.removedNodes.append(node) if node not in self.removedNodes else self.removedNodes
 
     def get_nodes(self) -> list:
         return self.nodes
@@ -180,6 +201,12 @@ class Network:
 
     def get_connections(self) -> list:
         return self.connections
+
+    def get_removed_nodes(self) -> list:
+        return self.removedNodes
+
+    def get_removed_connections(self) -> list:
+        return self.removedConnections
 
     def get_env(self):
         return self.env

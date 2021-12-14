@@ -15,20 +15,19 @@ def plot_network(nodes :[], connections: []):
         to_x = i.get_node_to().get_X()
         to_y = i.get_node_to().get_Y()
         plt.plot([from_x, to_x], [from_y, to_y], 'k')
-    plt.show()
 
 
 print("Dodag")
 
 
 def main():
-    NEW_MESSAGES = 5  # Total number of messages generated pr Node
+    NEW_MESSAGES = 2  # Total number of customers
     INTERVAL_MESSAGES = 10  # Generate messages roughly every x seconds
     MESSAGE_CREATE_TIME = 10  # time it takes a message to be created
     MESSAGE_PROCESS_TIME = 10  # time it takes a message to be processed.
 
-    NUMBER_OF_NODES = 7 # amount of nodes in the network.
-    NEIGHBOR_RADIUS = 7.5  # the range a node can see.
+    NUMBER_OF_NODES = 100 # amount of nodes in the network.
+    NEIGHBOR_RADIUS = 1.5  # the range a node can see.
 
 
     env = simpy.Environment()
@@ -36,19 +35,26 @@ def main():
     network = Network(env, no_of_nodes= NUMBER_OF_NODES, neighbor_radius= NEIGHBOR_RADIUS)
 
     # plot the initial network!
+    plt.figure(0)
     plot_network(network.get_nodes(), network.get_connections())
 
 
+    # Run the simulation!
     env.process(network.source(NEW_MESSAGES, INTERVAL_MESSAGES))
     env.run()
 
-    # plot network after
-    plot_network(network.get_nodes(), network.get_connections())
 
-    # for connection in network.get_connections():
-    #     print("etx", connection.get_ETX())
-    #     print("succ", connection.successfulTransmissions)
-    #     print("failed", connection.failedTransmissions)
+    # plot removed nodes from network
+    plt.figure(1)
+    plot_network(network.get_removed_nodes(), network.get_removed_connections())
 
+
+    # plot surviving network
+    surviving_nodes = [x for x in network.get_nodes() if x not in network.removedNodes]
+    surviving_connections = [x for x in network.get_connections() if x not in network.removedConnections]
+    plt.figure(2)
+    plot_network(surviving_nodes, surviving_connections)
+
+    plt.show()
 
 main()

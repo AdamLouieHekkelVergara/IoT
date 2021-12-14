@@ -5,7 +5,7 @@ import numpy as np
 import simpy
 
 
-class Node(simpy.Resource):
+class Node(simpy.PriorityResource):
     # constructor
     def __init__(self, env, max_capacity, rank: int, positionX: float, positionY: float):
         super().__init__(env, max_capacity)
@@ -14,29 +14,34 @@ class Node(simpy.Resource):
         self.positionX: float = positionX
         self.positionY: float = positionY
         self.env = env
+        self.batteryPower: int = 30
 
     #
     def receive_message(self, message):
         if isinstance(message, DIO):
-            print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
-            yield self.env.timeout(np.random.randint(3, 10))  # it takes 500 milliseconds to process/receive a message
+            # print(f'At time {self.env.now}, DIO message {message.get_ID()} was RECEIVED for node:     {self.get_ID()}')
+            processing_time = np.random.randint(3, 10)
+            self.batteryPower -= processing_time
+            yield self.env.timeout(processing_time)  # it takes 500 milliseconds to process/receive a message
 
             if message.get_rank() is None:
-                print(
-                    f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')
+                # print(
+                #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however sender Node did not have a rank.')
                 pass
             else:  # The sender has a rank! Initially, we wait for root to send out rank 0.
                 if self.get_rank() is None or message.get_rank() < self.get_rank():  # is it a better rank??
                     new_rank = message.get_rank() + 1
                     self.rank = new_rank
-                    print(
-                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')
+                    # print(
+                    #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, Changed rank to: {new_rank}.')
                 else:
-                    print(
-                        f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
+                    # print(
+                    #     f'At time {self.env.now}, DIO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}, however did not change rank.')
+                    pass
         # TODO implement this.
         elif isinstance(message, DAO):
-            print(f'At time {self.env.now}, DAO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
+            # print(f'At time {self.env.now}, DAO message {message.get_ID()} was PROCESSED for node:    {self.get_ID()}')
+            pass
 
 
     def get_ID(self) -> uuid:
@@ -56,3 +61,6 @@ class Node(simpy.Resource):
 
     def set_status(self, is_busy: bool):
         self.isBusy = is_busy
+
+    def get_battery_power(self) -> int:
+        return self.batteryPower
