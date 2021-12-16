@@ -14,7 +14,7 @@ class Node(simpy.PriorityResource):
         self.positionX: float = positionX
         self.positionY: float = positionY
         self.env = env
-        self.batteryPower: int = 30
+        self.batteryPower: int = 9999
 
     #
     def receive_message(self, message):
@@ -64,3 +64,6 @@ class Node(simpy.PriorityResource):
 
     def get_battery_power(self) -> int:
         return self.batteryPower
+
+    def set_battery_power(self, power: int):
+        self.batteryPower = power

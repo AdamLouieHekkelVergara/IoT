@@ -13,7 +13,7 @@ class Network:
     def __init__(self, env, no_of_nodes: int, neighbor_radius: float):
         self.noOfNodes: int = no_of_nodes
         self.env = env
-        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes)
+        self.nodes: [] = self.__define_tree_network(no_of_nodes)
         self.neighbourRadius: float = neighbor_radius
         self.connections = self.__initialize_neighbours()
         self.removedNodes: [] = []
@@ -39,10 +39,10 @@ class Network:
 
     def send_message_DIO(self, node, message_number: int):
         ## Create new DIO message
-        print(f'At time {self.env.now}, DIO message {message_number} is being CREATED for node: {node.ID}')
+        # print(f'At time {self.env.now}, DIO message {message_number} is being CREATED for node: {node.ID}')
         message = DIO(node.get_rank(), message_number)
         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
-        print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
+        # print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
 
         neighbors = self.__find_neighbours(node.get_ID()).copy()
         for neighbor in neighbors:  # get all neighbors
@@ -50,6 +50,9 @@ class Network:
             # Remove node from DODAG if it has no battery power left
             if neighbor.get_battery_power() <= 0:
                 self.remove_node_from_network(neighbor)
+                # Run local repair for children
+                children = self.find_children(neighbor)
+                self.local_repair(children)
                 continue
 
             # request neighboring Node from the environment!
@@ -61,39 +64,38 @@ class Network:
                     self.__get_connection_between(node, neighbor).successful_transmission()
 
                     # We now sent out, by calling the Nodes "receive_message method":
-                    print(
-                        f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
+                    # print(
+                    #     f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
 
                     yield self.env.process(neighbor.receive_message(message))
 
                 else:
                     # We  did not succesfully get a node before timeout! => reneged
-                    # TODO: Count the number of times reneged, and maybe use this for a ETX metrix?
                     self.__get_connection_between(node, neighbor).failed_transmission()
-                    print(
-                        f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
+                    # print(
+                    #     f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
 
     # TODO: Implement this method also:
     def send_message_DAO(self, node: Node, message_number: int):
         # Check for Node rank.
-        print(f'At time {self.env.now}, DAO message {message_number} is being CREATED for node: {node.get_ID()}')
+        # print(f'At time {self.env.now}, DAO message {message_number} is being CREATED for node: {node.get_ID()}')
         if node.get_rank() is None:
-            print(
-                f'At time {self.env.now}, Node {node.get_ID()} has no parents to send DAO message of number {message_number} to.')
+            # print(
+            #     f'At time {self.env.now}, Node {node.get_ID()} has no parents to send DAO message of number {message_number} to.')
             pass  # if Node doesnt have a rank, it does not know who to send to, as no parents are present.
         else:
             message = DAO(node.get_rank(), message_number)
             yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a DAO.
-            print(f'At time {self.env.now}, DAO message {message_number} was CREATED for node: {node.get_ID()}')
+            # print(f'At time {self.env.now}, DAO message {message_number} was CREATED for node: {node.get_ID()}')
             # determine who to sent to based on objective function in Connection:
             best_neighbor: Node = self.objective_function(node)
             if best_neighbor is not None:
-                print(
-                    f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {best_neighbor.get_ID()}')
+                # print(
+                #     f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {best_neighbor.get_ID()}')
                 yield self.env.process(best_neighbor.receive_message(message))
             else:
-                print(
-                    f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
+                # print(
+                #     f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
                 pass
 
     # return the best node, based on some routing metrixs.
@@ -106,13 +108,13 @@ class Network:
             if neighbor.get_rank() is not None and node.get_rank() > neighbor.get_rank():  # does neighbor have smaller rank.
                 # second routing metrix.
                 neighbor_connection = self.__get_connection_between(node, neighbor)
-                if min_ETX is None or neighbor_connection.get_ETX() < min_ETX: # Match on ETX
+                if min_ETX is None or neighbor_connection.get_ETX() < min_ETX:  # Match on ETX
                     min_ETX = neighbor_connection.get_ETX()
                     best_neighbor = neighbor
                 else:
-                    pass # neighbor connection has higher ETX and is not best neighbor.
+                    pass  # neighbor connection has higher ETX and is not best neighbor.
             else:
-                pass # neighbor has higher rank and is not parent.
+                pass  # neighbor has higher rank and is not parent.
         return best_neighbor
 
     # this algorithm defines the trickle timer. It has three parameters:
@@ -121,8 +123,8 @@ class Network:
     # 3. and a redundancy constant k
 
     def trickle_algorithm(self, Imin, Imax, k):
-        Interval_size: float # current intervalsize
-        time: float # time within the current interval
+        Interval_size: float  # current intervalsize
+        time: float  # time within the current interval
         pass
 
     ### HELPER METHODS
@@ -136,15 +138,57 @@ class Network:
                 neighbours.append(connection.get_node_to())
         return neighbours
 
+    def find_children(self, node: Node) -> []:
+        children = []
+        neighbours = self.__find_neighbours(node.get_ID())
+        if len(neighbours) > 0:
+            for neighbour in neighbours:
+                print(neighbour)
+                if neighbour.get_rank() is not None:
+                    if neighbour.get_rank() > node.get_rank():
+                        children.append(neighbour)
+        return children
+
+    def __find_parents(self, node: Node) -> []:
+        parents = []
+        for neighbour in self.__find_neighbours(node.get_ID()):
+            if neighbour.get_rank() < node.get_rank():
+                parents.append(neighbour)
+        return parents
+
     # assign each node a random position and rank in the network
     def __define_nodes_in_network(self, no_of_nodes) -> []:
         nodelist = []
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
-            y = round(i / (no_of_nodes / 10))
+            y = round(np.random.uniform(0, 10), 1)  # round(i / (no_of_nodes / 10))
             rank = None
             max_capacity = 1
             node = Node(self.env, max_capacity, rank, x, y)
+            nodelist.append(node)
+        nodelist[0].set_rank(0)  # define node 0 to be root
+        return nodelist
+
+    # assign each node a random position and rank in the network
+    def __define_grid_network(self, no_of_nodes) -> []:
+        nodelist = []
+        for x in range(10):
+            for y in range(10):
+                rank = None
+                max_capacity = 1
+                node = Node(self.env, max_capacity, rank, x, y)
+                nodelist.append(node)
+        nodelist[0].set_rank(0)  # define node 0 to be root
+        return nodelist
+
+    def __define_tree_network(self, no_of_nodes) -> []:
+        nodelist = []
+        xs = [5, 4, 6, 2.5, 5, 7.5, 2, 4, 6, 8, 1, 3, 5, 7, 9]
+        ys = [1, 3, 3, 5, 5, 5, 7, 7, 7, 7, 9, 9, 9, 9, 9]
+        for i in range(len(xs)):
+            rank = None
+            max_capacity = 1
+            node = Node(self.env, max_capacity, rank, xs[i], ys[i])
             nodelist.append(node)
         nodelist[0].set_rank(0)  # define node 0 to be root
         return nodelist
@@ -189,9 +233,40 @@ class Network:
 
     def remove_node_from_network(self, node):
         for connection in self.connections:
-            if (connection.get_node_from().get_ID() is node.get_ID()) or (connection.get_node_to().get_ID() is node.get_ID()):
-                self.removedConnections.append(connection) if connection not in self.removedConnections else self.removedConnections
+            if (connection.get_node_from().get_ID() is node.get_ID()) or (
+                    connection.get_node_to().get_ID() is node.get_ID()):
+                self.removedConnections.append(
+                    connection) if connection not in self.removedConnections else self.removedConnections
         self.removedNodes.append(node) if node not in self.removedNodes else self.removedNodes
+
+    def local_repair(self, nodes: [Node]):
+        for node in nodes:
+            # Does node have another parent?
+            alive_parents = []
+            for parent in self.__find_parents(node):
+                if parent.get_battery_power() > 0:
+                    alive_parents.append(parent)
+            has_parents = len(alive_parents) > 0
+            if has_parents:
+                continue
+
+            # It does not have parents? Then, increment rank and do local repair on children.
+            alive_children = []
+            for child in self.find_children(node):
+                if child.get_battery_power() > 0:
+                    alive_children.append(child)
+
+            # Find rank of new parent
+            neighbour_ranks = []
+            alive_neighbours = []
+            for neighbour in self.__find_neighbours(node.get_ID()):
+                if neighbour.get_battery_power() > 0:
+                    alive_neighbours.append(neighbour)
+            for neighbour in alive_neighbours:
+                neighbour_ranks.append(neighbour.get_rank())
+            new_parent_rank = min(neighbour_ranks)
+            node.set_rank(new_parent_rank + 1)
+            self.local_repair(alive_children)
 
     def get_nodes(self) -> list:
         return self.nodes
