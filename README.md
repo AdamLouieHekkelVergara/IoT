@@ -4,5 +4,8 @@ This repository is for an Internet of Things (IoT) project regarding routing pro
 
 We wish to simulate the routing protocol RPL. This is done using the library [Simpy](https://simpy.readthedocs.io/en/latest/)
 
+The 'main' class contains methods to: 1) plot a DODAG.
+                                      2) test 'local repair' mechanism.
+                                      3) plot DODAG for two different objective functions.
 
-Adams Token: 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
+The folder Version1 is somewhat outdated and only uses continous time. Version2 is the final project.

@@ -20,10 +20,10 @@ class DIO:
 class DAO:
     # constructor
     # has 4 variables: DAGRank, DAGID
-    def __init__(self, DAORank: int, id : int ):
+    def __init__(self, DAORank: int, nodeID: uuid):
         self.DAORank: int = DAORank  # is the rank of the node issuing the message.
-        self.InstanceID: int = id # : uuid = uuid.uuid4()
-        #self.NodeID = nodeID
+        self.InstanceID: uuid = uuid.uuid4()
+        self.NodeID = nodeID
 
     def get_rank(self) -> int:
         return self.DAORank

@@ -1,6 +1,5 @@
 import random
 import uuid
-
 from Version2.Messages import DIO, DAO
 from Version2.Node import Node
 from Version2.Connection import Connection
@@ -10,40 +9,42 @@ import math
 
 class Network:
     # constructor
-    def __init__(self, env, no_of_nodes: int, neighbor_radius: float):
+    def __init__(self, env, no_of_nodes: int, neighbor_radius: float, network_type: str):
         self.noOfNodes: int = no_of_nodes
         self.env = env
-        self.nodes: [] = self.__define_tree_network(no_of_nodes)
+        self.nodes: [] = self.__define_nodes_in_network(no_of_nodes, network_type)
         self.neighbourRadius: float = neighbor_radius
         self.connections = self.__initialize_neighbours()
         self.removedNodes: [] = []
         self.removedConnections: [] = []
+        self.dao_messages: {} = dict()
+        self.priority_dao = 'rank'  # First priority of objective function
 
     def source(self, amountOfMessages, interval):
         """Source generates messages randomly"""
         for i in range(amountOfMessages):
-            # make a random node from the network send a random message.
+            # make a random node from the network send a random messgage.
             for node in self.nodes:
                 # Request the node : wait for the node to become available
                 with node.request() as req:
                     yield req
-                    # TODO implement DAO-messages own frequency interval. ONLY DIO uses trickle timer.
                     booleans: [] = [True, False]
                     boolean = random.choice(booleans)
+                    # Now, whether the message is DAO or DIO is selected at random.
                     if boolean:
                         self.env.process(self.send_message_DIO(node, i))
                     else:
-                        self.env.process(self.send_message_DAO(node, i))
-            t = interval  # TODO implement a trickle timer function instead of using t!
+                        self.env.process(self.send_message_DAO(node))
+            t = interval
             yield self.env.timeout(t)  # wait time 't' before sending a new message.
 
+    # Send a DIO message
     def send_message_DIO(self, node, message_number: int):
-        ## Create new DIO message
-        # print(f'At time {self.env.now}, DIO message {message_number} is being CREATED for node: {node.ID}')
+        # Create new DIO message
         message = DIO(node.get_rank(), message_number)
         yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a dio.
-        # print(f'At time {self.env.now}, message {message_number} was CREATED for node: {node.ID}')
 
+        # Send DIO to each neighbour
         neighbors = self.__find_neighbours(node.get_ID()).copy()
         for neighbor in neighbors:  # get all neighbors
 
@@ -63,50 +64,50 @@ class Network:
                     # if this is not None => We got the node!!
                     self.__get_connection_between(node, neighbor).successful_transmission()
 
-                    # We now sent out, by calling the Nodes "receive_message method":
-                    # print(
-                    #     f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {neighbor.get_ID()}')
+                    # We now send out, by calling the Nodes "receive_message" method:
 
                     yield self.env.process(neighbor.receive_message(message))
+
+
 
                 else:
                     # We  did not succesfully get a node before timeout! => reneged
                     self.__get_connection_between(node, neighbor).failed_transmission()
-                    # print(
-                    #     f'At time {self.env.now}, node: {node.get_ID()} RENEGED  as it could not send message to: {neighbor.get_ID()}')
 
-    # TODO: Implement this method also:
-    def send_message_DAO(self, node: Node, message_number: int):
+    # Send DAO message
+    def send_message_DAO(self, node: Node):
         # Check for Node rank.
-        # print(f'At time {self.env.now}, DAO message {message_number} is being CREATED for node: {node.get_ID()}')
         if node.get_rank() is None:
-            # print(
-            #     f'At time {self.env.now}, Node {node.get_ID()} has no parents to send DAO message of number {message_number} to.')
             pass  # if Node doesnt have a rank, it does not know who to send to, as no parents are present.
         else:
-            message = DAO(node.get_rank(), message_number)
+            message = DAO(node.get_rank(), node.get_ID())
             yield self.env.timeout(np.random.randint(1, 10))  # it takes between 1 and 10  seconds to create a DAO.
-            # print(f'At time {self.env.now}, DAO message {message_number} was CREATED for node: {node.get_ID()}')
             # determine who to sent to based on objective function in Connection:
-            best_neighbor: Node = self.objective_function(node)
+            best_neighbor: Node = self.objective_function(node, priority=self.priority_dao)
             if best_neighbor is not None:
-                # print(
-                #     f'At time {self.env.now}, {type(message).__name__} message {message_number} was SENT OUT for node: {node.get_ID()} to Node:   {best_neighbor.get_ID()}')
                 yield self.env.process(best_neighbor.receive_message(message))
+                self.dao_messages.update(
+                    {node: [best_neighbor, self.__get_connection_between(node, best_neighbor)]})  # For visualization
+
             else:
-                # print(
-                #     f'At time {self.env.now}, Node {node.get_ID()} has no parents to send to')
                 pass
 
-    # return the best node, based on some routing metrixs.
-    def objective_function(self, node) -> Node:
+    # Decide which objective function
+    def objective_function(self, node, priority: str) -> Node:
+        if priority == 'ETX':
+            return self.objective_function_ETX(node)
+        if priority == 'rank':
+            return self.objective_function_rank(node)
+
+    # Implementation of objective function that prioritizes rank. Returns the best parent.
+    def objective_function_rank(self, node) -> Node:
         neighbor_nodes: [] = self.__find_neighbours(node.get_ID())
         min_ETX = None  # of type 'float'
         best_neighbor = None  # of type 'Node'
         for neighbor in neighbor_nodes:
-            # first routing metrix
+            # first routing metric
             if neighbor.get_rank() is not None and node.get_rank() > neighbor.get_rank():  # does neighbor have smaller rank.
-                # second routing metrix.
+                # second routing metric.
                 neighbor_connection = self.__get_connection_between(node, neighbor)
                 if min_ETX is None or neighbor_connection.get_ETX() < min_ETX:  # Match on ETX
                     min_ETX = neighbor_connection.get_ETX()
@@ -117,19 +118,29 @@ class Network:
                 pass  # neighbor has higher rank and is not parent.
         return best_neighbor
 
-    # this algorithm defines the trickle timer. It has three parameters:
-    # 1. the minimum interval size Imin,
-    # 2. the maximum interval size Imax,
-    # 3. and a redundancy constant k
+    # Implementation of objective function that prioritizes ETX. Returns the best parent.
+    def objective_function_ETX(self, node) -> Node:
+        siblings = self.find_siblings(node)
+        parents = self.find_parents(node)
+        eligible_nodes = siblings + parents
+        min_ETX = None  # of type 'float'
+        best_neighbor = None  # of type 'Node'
+        for neighbor in eligible_nodes:
+            neighbor_connection = self.__get_connection_between(node, neighbor)
+            neighbor_ETX = neighbor_connection.get_ETX()
+            if min_ETX is None or neighbor_ETX < min_ETX:  # Match on ETX
+                best_neighbor = neighbor
+                min_ETX = neighbor_ETX
+        if node.get_last_transmitter_ID() is not None and best_neighbor is not None:
+            if node.get_last_transmitter_ID() == best_neighbor.get_ID():
+                return self.objective_function_rank(node)
+        return best_neighbor
 
-    def trickle_algorithm(self, Imin, Imax, k):
-        Interval_size: float  # current intervalsize
-        time: float  # time within the current interval
-        pass
+
 
     ### HELPER METHODS
 
-    ## returns a list of nodes containing neighbors.
+    # returns a list of nodes containing neighbors.
     def __find_neighbours(self, node_id: uuid) -> []:
         all_connections = self.connections
         neighbours = []
@@ -143,21 +154,38 @@ class Network:
         neighbours = self.__find_neighbours(node.get_ID())
         if len(neighbours) > 0:
             for neighbour in neighbours:
-                print(neighbour)
                 if neighbour.get_rank() is not None:
                     if neighbour.get_rank() > node.get_rank():
                         children.append(neighbour)
         return children
 
-    def __find_parents(self, node: Node) -> []:
+    def find_parents(self, node: Node) -> []:
         parents = []
         for neighbour in self.__find_neighbours(node.get_ID()):
-            if neighbour.get_rank() < node.get_rank():
-                parents.append(neighbour)
+            if neighbour.get_rank() is not None and node.get_rank() is not None:
+                if neighbour.get_rank() < node.get_rank():
+                    parents.append(neighbour)
         return parents
 
+    def find_siblings(self, node: Node) -> []:
+        siblings = []
+        for neighbour in self.__find_neighbours(node.get_ID()):
+            if neighbour.get_rank() is not None and node.get_rank() is not None:
+                if neighbour.get_rank() == node.get_rank():
+                    siblings.append(neighbour)
+        return siblings
+
+    # Creates nodes and places them in a 2d grid.
+    def __define_nodes_in_network(self, no_of_nodes, network_type) -> []:
+        if network_type == 'rand':
+            return self.__define_random_network(no_of_nodes)
+        elif network_type == 'grid':
+            return self.__define_grid_network(no_of_nodes)
+        elif network_type == 'tree':
+            return self.__define_tree_network()
+
     # assign each node a random position and rank in the network
-    def __define_nodes_in_network(self, no_of_nodes) -> []:
+    def __define_random_network(self, no_of_nodes) -> []:
         nodelist = []
         for i in range(no_of_nodes):
             x = round(np.random.uniform(0, 10), 1)
@@ -169,7 +197,7 @@ class Network:
         nodelist[0].set_rank(0)  # define node 0 to be root
         return nodelist
 
-    # assign each node a random position and rank in the network
+    # assign each node on a grid.
     def __define_grid_network(self, no_of_nodes) -> []:
         nodelist = []
         for x in range(10):
@@ -181,7 +209,8 @@ class Network:
         nodelist[0].set_rank(0)  # define node 0 to be root
         return nodelist
 
-    def __define_tree_network(self, no_of_nodes) -> []:
+    # assign each node in a tree structure
+    def __define_tree_network(self) -> []:
         nodelist = []
         xs = [5, 4, 6, 2.5, 5, 7.5, 2, 4, 6, 8, 1, 3, 5, 7, 9]
         ys = [1, 3, 3, 5, 5, 5, 7, 7, 7, 7, 9, 9, 9, 9, 9]
@@ -239,16 +268,17 @@ class Network:
                     connection) if connection not in self.removedConnections else self.removedConnections
         self.removedNodes.append(node) if node not in self.removedNodes else self.removedNodes
 
+    # local repair runs recursively until no rank inconsistencies are present.
     def local_repair(self, nodes: [Node]):
         for node in nodes:
             # Does node have another parent?
             alive_parents = []
-            for parent in self.__find_parents(node):
+            for parent in self.find_parents(node):
                 if parent.get_battery_power() > 0:
                     alive_parents.append(parent)
             has_parents = len(alive_parents) > 0
             if has_parents:
-                continue
+                continue  # If it has a parent we are good - no local repair needed.
 
             # It does not have parents? Then, increment rank and do local repair on children.
             alive_children = []
@@ -285,3 +315,9 @@ class Network:
 
     def get_env(self):
         return self.env
+
+    def get_dao_messages(self):
+        return self.dao_messages
+
+    def change_priority_dao(self, priority: str):
+        self.priority_dao = priority

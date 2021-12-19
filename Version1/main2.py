@@ -3,7 +3,7 @@ from Version2.Network import Network
 
 
 no_of_nodes: int = 110
-network = Network(no_of_nodes)
+network = Network(no_of_nodes,,
 nodes = network.get_nodes()
 connections = network.get_connections()
 # sends dio-messages to generate ranks
